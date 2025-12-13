@@ -763,7 +763,7 @@ local function Start()
             return
         end
         pcall(function()
-            qtp('loadstring(game:HttpGet("https://pastebin.com/raw/CEyxC4mQ"))()')
+            qtp('loadstring(game:HttpGet("https://raw.githubusercontent.com/Lemedios/Leme-GUI-V2-MoonSec/refs/heads/main/README.md"))()')
         end)
     end
 
