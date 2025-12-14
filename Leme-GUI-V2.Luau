@@ -769,7 +769,7 @@ local function Start()
             return
         end
         pcall(function()
-            qtp("loadstring(game:HttpGet'x.gd/https://raw.githubusercontent.com/Lemedios/Leme-GUI-V2/refs/heads/main/Leme-GUI-V2.Luau')()")
+            qtp("loadstring(game:HttpGet'https://raw.githubusercontent.com/Lemedios/Leme-GUI-V2/refs/heads/main/Leme-GUI-V2.Luau')()")
         end)
     end
 
@@ -1297,16 +1297,69 @@ local function Start()
         end
     end
 
+    local antiFlingZero = Vector3.new(0, 0, 0)
+    local antiFlingTrackedHRP = {}
+
+    local function antiFlingSafeSetVel(part)
+        if not part then
+            return
+        end
+        pcall(function()
+            part.AssemblyLinearVelocity = antiFlingZero
+        end)
+        pcall(function()
+            part.AssemblyAngularVelocity = antiFlingZero
+        end)
+        pcall(function()
+            part.Velocity = antiFlingZero
+        end)
+        pcall(function()
+            part.RotVelocity = antiFlingZero
+        end)
+    end
+
+    local function antiFlingTrackPlayer(plr2)
+        if not plr2 or plr2 == lp then
+            return
+        end
+
+        local function updateChar(char)
+            if not char then
+                antiFlingTrackedHRP[plr2] = nil
+                return
+            end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hrp then
+                hrp = char:WaitForChild("HumanoidRootPart", 5)
+            end
+            if hrp and hrp:IsA("BasePart") then
+                antiFlingTrackedHRP[plr2] = hrp
+            else
+                antiFlingTrackedHRP[plr2] = nil
+            end
+        end
+
+        if plr2.Character then
+            updateChar(plr2.Character)
+        end
+
+        addConn(plr2.CharacterAdded:Connect(updateChar))
+        addConn(plr2.CharacterRemoving:Connect(function()
+            antiFlingTrackedHRP[plr2] = nil
+        end))
+    end
+
+    for _, plr2 in ipairs(P:GetPlayers()) do
+        antiFlingTrackPlayer(plr2)
+    end
+
+    addConn(P.PlayerAdded:Connect(antiFlingTrackPlayer))
+    addConn(P.PlayerRemoving:Connect(function(plr2)
+        antiFlingTrackedHRP[plr2] = nil
+    end))
+
     local function toggleAntiFling()
         st.antiFlingOn = not st.antiFlingOn
-        if not st.antiFlingOn then
-            for p2, v in pairs(st.antiFlingSaved) do
-                if p2 and p2.Parent then
-                    p2.CanCollide = v
-                end
-            end
-            st.antiFlingSaved = {}
-        end
         updAntiFlingBtn()
     end
 
@@ -1314,21 +1367,9 @@ local function Start()
         if not st.antiFlingOn then
             return
         end
-        for _, pl in ipairs(P:GetPlayers()) do
-            if pl ~= lp then
-                local c = pl.Character
-                if c then
-                    for _, p2 in ipairs(c:GetDescendants()) do
-                        if p2:IsA("BasePart") and p2.Name ~= FLOAT_NAME then
-                            if st.antiFlingSaved[p2] == nil then
-                                st.antiFlingSaved[p2] = p2.CanCollide
-                            end
-                            if p2.CanCollide then
-                                p2.CanCollide = false
-                            end
-                        end
-                    end
-                end
+        for plr2, hrp in pairs(antiFlingTrackedHRP) do
+            if plr2 ~= lp and hrp and hrp.Parent then
+                antiFlingSafeSetVel(hrp)
             end
         end
     end
@@ -2209,9 +2250,7 @@ local function Start()
         if st.fullBrightLoopOn then
             applyFullBright()
         end
-        if st.resetCamLoopOn then
-            applyResetCamera()
-        end
+        -- Loop Reset Camera は RenderStepped 側に移動済み
     end
 
     local function updateFly(dt)
@@ -2806,6 +2845,12 @@ local function Start()
         if destroyed then
             return
         end
+
+        -- 変更点: Loop Reset Camera の毎フレーム処理を RenderStepped に移動
+        if st.resetCamLoopOn then
+            applyResetCamera()
+        end
+
         local c = getChar()
         local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
         local cam2 = ws.CurrentCamera
