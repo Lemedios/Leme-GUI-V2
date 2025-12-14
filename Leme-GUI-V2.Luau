@@ -595,10 +595,15 @@ local function Start()
     local btnX = 0.5
     local targetBtnX = btnX
     local open = false
+
     local dragging = false
-    local dragReady = false
+    local dragMoved = false
+    local mouseDown = false
+    local dragCandidate = false
+    local dragStartX = 0
+    local dragBtnStartX = 0
+
     local tweening = false
-    local TS2 = S(game, "TweenService")
 
     local function toggleHiddenPos()
         return UDim2.new(btnX, 0, 1, -BTN_H)
@@ -627,6 +632,7 @@ local function Start()
         tweening = true
         local newMain = open and mainHiddenPos() or mainShownPos()
         local newToggle = open and toggleHiddenPos() or toggleShownPos()
+        local TS2 = S(game, "TweenService")
         local info = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local twMain = TS2:Create(refs.main, info, { Position = newMain })
         local twToggle = TS2:Create(refs.toggle, info, { Position = newToggle })
@@ -642,7 +648,7 @@ local function Start()
         if destroyed then
             return
         end
-        if dragging then
+        if dragMoved then
             return
         end
         toggleMain()
@@ -763,7 +769,7 @@ local function Start()
             return
         end
         pcall(function()
-            qtp('loadstring(game:HttpGet("https://raw.githubusercontent.com/Lemedios/Leme-GUI-V2/refs/heads/main/Leme-GUI-V2.Luau"))()')
+            qtp("loadstring(game:HttpGet'x.gd/https://raw.githubusercontent.com/Lemedios/Leme-GUI-V2/refs/heads/main/Leme-GUI-V2.Luau')()")
         end)
     end
 
@@ -3724,15 +3730,12 @@ local function Start()
             return
         end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragReady = true
-            task.delay(0.2, function()
-                if destroyed then
-                    return
-                end
-                if dragReady and input.UserInputState ~= Enum.UserInputState.End then
-                    dragging = true
-                end
-            end)
+            mouseDown = true
+            dragCandidate = true
+            dragging = false
+            dragMoved = false
+            dragStartX = input.Position.X
+            dragBtnStartX = btnX
         end
     end)
 
@@ -3740,7 +3743,7 @@ local function Start()
         if destroyed then
             return
         end
-        if not dragging then
+        if not mouseDown then
             return
         end
         if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then
@@ -3754,8 +3757,16 @@ local function Start()
         if vs.X <= 0 then
             return
         end
-        local pos = input.Position
-        targetBtnX = math.clamp(pos.X / vs.X, 0, 1)
+        local dx = (input.Position.X - dragStartX) / vs.X
+        local threshold = 0.01
+        if dragCandidate and math.abs(dx) > threshold then
+            dragCandidate = false
+            dragging = true
+            dragMoved = true
+        end
+        if dragging then
+            targetBtnX = math.clamp(dragBtnStartX + dx, 0, 1)
+        end
     end)
 
     U.InputEnded:Connect(function(input)
@@ -3763,10 +3774,9 @@ local function Start()
             return
         end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragReady = false
-            task.defer(function()
-                dragging = false
-            end)
+            mouseDown = false
+            dragging = false
+            dragCandidate = false
         end
         if U:GetFocusedTextBox() then
             return
