@@ -1274,7 +1274,7 @@ local function Start()
                 savedRotVel = hrp2.AssemblyAngularVelocity,
                 freezeCF = hrp2.CFrame,
             }
-            data.hb = addConn(R.Heartbeat:Connect(function()
+            data.hb = addConn(R.RenderStepped:Connect(function()
                 if destroyed then
                     return
                 end
@@ -1419,7 +1419,7 @@ local function Start()
             if hrp2 then
                 local vel = hrp2.Velocity
                 hrp2.Velocity = Vector3.new(0, 340282356779733642748073463979561713663, 0)
-                R.RenderStepped:Wait()
+                R.Heartbeat:Wait()
                 if destroyed or touchStopRequested then
                     hrp2.Velocity = vel
                     break
@@ -2279,7 +2279,6 @@ local function Start()
         if st.fullBrightLoopOn then
             applyFullBright()
         end
-        -- Loop Reset Camera は RenderStepped 側に移動済み
     end
 
     local function updateFly(dt)
@@ -2836,16 +2835,12 @@ local function Start()
         end
     end
 
-    local hbConn = addConn(R.Heartbeat:Connect(function(dt)
+    local hbConn = addConn(R.RenderStepped:Connect(function(dt)
         if destroyed then
             return
         end
-        updateTpWalk(dt)
         updateAntiVoid()
         updateAntiFling()
-        updateDesync()
-        updateFly(dt)
-        updateEsp(dt)
         updateStatus(dt)
         applyLoops()
         updateChat()
@@ -2870,12 +2865,22 @@ local function Start()
         end
     end))
 
+    addConn(R.Heartbeat:Connect(function(dt)
+        if destroyed then
+            return
+        end
+        updateTpWalk(dt)
+        updateDesync()
+        updateFly(dt)
+        updateEsp(dt)
+    end))
+
+
     addConn(R.RenderStepped:Connect(function()
         if destroyed then
             return
         end
 
-        -- 変更点: Loop Reset Camera の毎フレーム処理を RenderStepped に移動
         if st.resetCamLoopOn then
             applyResetCamera()
         end
@@ -2917,7 +2922,7 @@ local function Start()
         root.AssemblyAngularVelocity = st.desyncRealRotVel
     end)
 
-    addConn(R.Stepped:Connect(function()
+    addConn(R.RenderStepped:Connect(function()
         if destroyed then
             return
         end
