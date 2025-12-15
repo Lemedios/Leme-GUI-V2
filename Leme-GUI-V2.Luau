@@ -525,6 +525,7 @@ local function Start()
     createButton(refs.flyGroup, "Smart Fly", "スマート飛行", 5, "smartFlyBtn", true)
     createButton(refs.flyGroup, "Trigger", "トリガーキー", 6, "smartFlyTrigBtn", false)
 
+    createButton(refs.flyGroup, "Sit Fly", "座る", 7, "sitFlyBtn", true)
     createButton(refs.tpWalkGroup, "TP Walk", "TP歩行", 1, "tpWalkBtn", true)
     createLabeledInput(refs.tpWalkGroup, "Speed", "速度", 2, initTpSpeedStr, "tpWalkSpeedInput")
 
@@ -705,6 +706,7 @@ local function Start()
         antiFlingSaved = {},
         touchFlingOn = false,
         flyJumpOn = false,
+        sitFlyOn = true,
         flyMode = "none",
         flySpeed = initFlySpeedVal,
         flyPos = nil,
@@ -833,6 +835,10 @@ local function Start()
 
     local function updFlyJumpBtn()
         setToggleText(refs.flyJumpBtn, st.flyJumpOn)
+    end
+
+    local function updSitFlyBtn()
+        setToggleText(refs.sitFlyBtn, st.sitFlyOn)
     end
 
     local function updFlyBtns()
@@ -996,6 +1002,7 @@ local function Start()
         updAntiFlingBtn()
         updTouchFlingBtn()
         updFlyJumpBtn()
+        updSitFlyBtn()
         updFlyBtns()
         updEspBtn()
         updMiniEspBtn()
@@ -1401,46 +1408,42 @@ local function Start()
         end
     end
 
-    local touchRunning = false
-    local touchStopRequested = false
-    local touchThread
+    local touchFlingRunning = false
+    local touchFlingStopRequested = false
 
-    local function touchLoop()
-        touchRunning = true
-        local movel = 0
-        while not destroyed and not touchStopRequested do
+    local function touchFlingLoop()
+        touchFlingRunning = true
+        local huge = Vector3.new(0, 340282356779733642748073463979561713663, 0)
+        while not destroyed and not touchFlingStopRequested do
             R.Heartbeat:Wait()
-            if destroyed or touchStopRequested then
+            if destroyed or touchFlingStopRequested then
                 break
             end
             local c = getChar()
             local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-            if hrp2 then
-                local vel = hrp2.Velocity
-                hrp2.Velocity = Vector3.new(0, 340282356779733642748073463979561713663, 0)
-                R.Heartbeat:Wait()
-                if destroyed or touchStopRequested then
-                    hrp2.Velocity = vel
-                    break
+            if hrp2 and hrp2.Parent then
+                local originalVelocity = hrp2.Velocity
+                hrp2.Velocity = huge
+                R.RenderStepped:Wait()
+                if hrp2 and hrp2.Parent then
+                    hrp2.Velocity = originalVelocity
                 end
-                hrp2.Velocity = vel + Vector3.new(0, movel, 0)
-                movel = -movel
             end
         end
-        touchRunning = false
-        touchStopRequested = false
+        touchFlingRunning = false
+        touchFlingStopRequested = false
     end
 
     local function toggleTouchFling()
         if st.touchFlingOn then
             st.touchFlingOn = false
-            touchStopRequested = true
+            touchFlingStopRequested = true
         else
             st.touchFlingOn = true
-            if not touchRunning then
-                touchStopRequested = false
-                touchThread = coroutine.create(touchLoop)
-                coroutine.resume(touchThread)
+            if not touchFlingRunning then
+                touchFlingStopRequested = false
+                local co = coroutine.create(touchFlingLoop)
+                coroutine.resume(co)
             end
         end
         updTouchFlingBtn()
@@ -1496,7 +1499,7 @@ local function Start()
             removeHoverAlign()
         elseif m == "fly" then
             if hum then
-                hum.Sit = true
+                hum.Sit = st.sitFlyOn and true or false
                 hum.AutoRotate = false
             end
             st.hoverTarget = nil
@@ -1506,7 +1509,7 @@ local function Start()
             st.flyPos = hrp2 and hrp2.Position or nil
         elseif m == "hover" then
             if hum then
-                hum.Sit = true
+                hum.Sit = st.sitFlyOn and true or false
                 hum.AutoRotate = true
             end
             st.flyPos = nil
@@ -1518,7 +1521,7 @@ local function Start()
             end
         elseif m == "vel" then
             if hum then
-                hum.Sit = true
+                hum.Sit = st.sitFlyOn and true or false
                 hum.AutoRotate = true
             end
             st.flyPos = nil
@@ -2290,12 +2293,16 @@ local function Start()
         local c = getChar()
         local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
         local hum = c and c:FindFirstChildOfClass("Humanoid")
+
+        if hum and st.flyMode ~= "none" and st.sitFlyOn then
+            hum.Sit = true
+        end
         local cam2 = ws.CurrentCamera
         if not hrp2 or not hum or not cam2 then
             return
         end
 
-        hum.Sit = true
+        hum.Sit = st.sitFlyOn and true or false
 
         local cf = cam2.CFrame
         local look = cf.LookVector
@@ -3114,6 +3121,22 @@ local function Start()
         end
         setFlyMode("vel")
     end)
+
+    refs.sitFlyBtn.MouseButton1Click:Connect(function()
+        if destroyed then
+            return
+        end
+        st.sitFlyOn = not st.sitFlyOn
+        if not st.sitFlyOn then
+            local c = getChar()
+            local hum = c and c:FindFirstChildOfClass("Humanoid")
+            if hum and st.flyMode ~= "none" then
+                hum.Sit = false
+            end
+        end
+        updSitFlyBtn()
+    end)
+
 
     refs.espBtn.MouseButton1Click:Connect(function()
         if destroyed then
