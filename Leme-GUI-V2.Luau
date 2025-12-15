@@ -569,7 +569,6 @@ local function Start()
     createButton(refs.scriptGroup, "Load ShiftLock", "シフトロックスクリプト", 4, "loadShiftLockBtn", false)
     createButton(refs.scriptGroup, "Unload", "スクリプトを削除", 5, "unloadBtn", false)
     createButton(refs.scriptGroup, "Reload", "リロード", 6, "reloadBtn", false)
-    createButton(refs.scriptGroup, "Keep Script", "スクリプト保持", 7, "keepScriptBtn", true)
     createButton(refs.scriptGroup, "Language", "言語", 8, "languageBtn", false)
 
     createButton(refs.teleportGroup, "TP to", "テレポート", 1, "tpToBtn", false)
@@ -746,7 +745,6 @@ local function Start()
         desyncPosTarget = nil,
         desyncMaterialSaved = {},
         resetCamLoopOn = false,
-        keepScriptOn = true,
         language = "en",
     }
 
@@ -759,20 +757,6 @@ local function Start()
     end
 
     local antiAfkLoaded = false
-    local qtp
-    pcall(function()
-        qtp = queue_on_teleport or queueteleport
-    end)
-
-    local function queueSelf()
-        if not qtp then
-            return
-        end
-        pcall(function()
-            qtp("loadstring(game:HttpGet'https://raw.githubusercontent.com/Lemedios/Leme-GUI-V2/refs/heads/main/Leme-GUI-V2.Luau')()")
-        end)
-    end
-
     local function setToggleText(btn, isOn)
         if not btn then
             return
@@ -910,9 +894,6 @@ local function Start()
         setToggleText(refs.loopResetCamBtn, st.resetCamLoopOn)
     end
 
-    local function updKeepScriptBtn()
-        setToggleText(refs.keepScriptBtn, st.keepScriptOn)
-    end
 
     local function updFlingTargetDisplay()
         local lbl = refs.flingTargetDisplay
@@ -1002,7 +983,6 @@ local function Start()
         updDesyncBtn()
         updDesyncPosBtn()
         updLoopResetCamBtn()
-        updKeepScriptBtn()
         updLanguageBtn()
         updFlingTargetDisplay()
     end
@@ -3942,14 +3922,10 @@ local function Start()
     updDesyncBtn()
     updDesyncPosBtn()
     updLoopResetCamBtn()
-    updKeepScriptBtn()
     updFlingTargetDisplay()
     updLanguageBtn()
     applyLanguage()
 
-    if st.keepScriptOn then
-        queueSelf()
-    end
 
     function C.D()
         if destroyed then
@@ -4007,16 +3983,6 @@ local function Start()
         task.defer(Start)
     end)
 
-    refs.keepScriptBtn.MouseButton1Click:Connect(function()
-        if destroyed then
-            return
-        end
-        st.keepScriptOn = not st.keepScriptOn
-        if st.keepScriptOn then
-            queueSelf()
-        end
-        updKeepScriptBtn()
-    end)
 end
 
 Start()
