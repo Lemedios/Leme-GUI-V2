@@ -2616,42 +2616,12 @@ local function Start()
         part.Color = Color3.new(1, 0, 0)
     end
 
-    local function enforceDesyncDummyNoCollide()
-        local parts = st.desyncDummyParts
-        if not parts or #parts == 0 then
-            local d = st.desyncDummy
-            if not d then
-                return
-            end
-            parts = {}
-            st.desyncDummyParts = parts
-            for _, v in ipairs(d:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    table.insert(parts, v)
-                end
-            end
-        end
-        for _, p in ipairs(parts) do
-            if p and p.Parent then
-                p.CanCollide = false
-                pcall(function()
-                    p.CanTouch = false
-                end)
-                pcall(function()
-                    p.CanQuery = false
-                end)
-            end
-        end
-    end
-
-
     local function createDesyncDummy(original)
         if st.desyncDummy then
             st.desyncDummy:Destroy()
             st.desyncDummy = nil
             st.desyncDummyRoot = nil
             st.desyncDummyMotorMap = {}
-        st.desyncDummyParts = {}
             st.desyncSourceChar = nil
         end
         if not original then
@@ -2669,7 +2639,6 @@ local function Start()
         for _, v in ipairs(d:GetDescendants()) do
             if v:IsA("BasePart") then
                 stylizeDesyncPart(v)
-                table.insert(st.desyncDummyParts, v)
             elseif v:IsA("Humanoid") then
                 v.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
             elseif v:IsA("Script") or v:IsA("LocalScript") then
@@ -2796,9 +2765,6 @@ local function Start()
 
         local dRoot = st.desyncDummyRoot
         if dRoot and dRoot.Parent then
-                    end
-                end
-            end
             dRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             dRoot.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             dRoot.CFrame = savedCF
@@ -2936,9 +2902,6 @@ local function Start()
         if destroyed then
             return
         end
-        if st.desyncOn or st.desyncPosOn or st.desyncDirOn then
-            enforceDesyncDummyNoCollide()
-        end
         updateAntiVoid()
         updateAntiFling()
         updateStatus(dt)
@@ -2974,6 +2937,31 @@ local function Start()
         updateFly(dt)
         updateEsp(dt)
     end))
+
+    addConn(R.RenderStepped:Connect(function()
+        if destroyed then
+            return
+        end
+        if not (st.desyncOn or st.desyncPosOn or st.desyncDirOn) then
+            return
+        end
+        local d = st.desyncDummy
+        if not d or not d.Parent then
+            return
+        end
+        for _, v in ipairs(d:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+                pcall(function()
+                    v.CanTouch = false
+                end)
+                pcall(function()
+                    v.CanQuery = false
+                end)
+            end
+        end
+    end))
+
 
     addConn(R.RenderStepped:Connect(function()
         if destroyed then
@@ -3114,7 +3102,6 @@ local function Start()
             st.desyncDummyRoot = nil
             st.desyncDummyMotorMap = {}
             st.desyncSourceChar = nil
-            st.desyncDummyParts = nil
         end
     end))
 
