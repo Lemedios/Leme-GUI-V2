@@ -514,8 +514,9 @@ local function Start()
     refs.fogGroup = createGroup("Fog", "霧", 13, "Fog")
     refs.fbGroup = createGroup("Full Bright", "フルブライト", 14, "FullBright")
     refs.desyncGroup = createGroup("Desync", "非同期", 15, "Desync")
-    refs.teleportGroup = createGroup("Teleport", "テレポート", 16, "Teleport")
-    refs.resetCamGroup = createGroup("Reset Camera", "カメラ初期化", 17, "ResetCamera")
+    refs.desyncDirGroup = createGroup("Desync Direction", "向きの同期ズレ", 16, "DesyncDirection")
+    refs.teleportGroup = createGroup("Teleport", "テレポート", 17, "Teleport")
+    refs.resetCamGroup = createGroup("Reset Camera", "カメラ初期化", 18, "ResetCamera")
     refs.scriptGroup = createGroup("Script", "スクリプト", 99, "Script")
 
     createButton(refs.flyGroup, "Fly", "飛行", 1, "flyBtn", true)
@@ -594,6 +595,12 @@ local function Start()
     refs.desyncPosCell.Visible = false
     createButton(refs.desyncGroup, "Desync", "非同期", 1, "desyncBtn", true)
     createButton(refs.desyncGroup, "Desync Pos", "非同期座標", 2, "desyncPosBtn", true)
+
+    createButton(refs.desyncDirGroup, "Desync", "同期ズレ", 1, "desyncDirBtn", true)
+    createButton(refs.desyncDirGroup, "Direction", "向き", 2, "desyncDirDirectionBtn", false)
+    createLabeledInput(refs.desyncDirGroup, "Roll", "ロール", 3, 0, "desyncDirRollInput")
+    createLabeledInput(refs.desyncDirGroup, "Pitch", "ピッチ", 4, 0, "desyncDirPitchInput")
+    createLabeledInput(refs.desyncDirGroup, "Yaw", "ヨー", 5, 0, "desyncDirYawInput")
 
     createButton(refs.resetCamGroup, "Reset Camera", "カメラ初期化", 1, "resetCamBtn", false)
     createButton(refs.resetCamGroup, "Loop Reset", "ループ初期化", 2, "loopResetCamBtn", true)
@@ -770,6 +777,14 @@ local function Start()
         flingCooldownEnd = 0,
         desyncOn = false,
         desyncPosOn = false,
+        desyncDirOn = false,
+        desyncDirRollOn = false,
+        desyncDirPitchOn = false,
+        desyncDirYawOn = false,
+        desyncDirRollDeg = 0,
+        desyncDirPitchDeg = 0,
+        desyncDirYawDeg = 0,
+
         desyncSavedCF = nil,
         desyncRealCF = nil,
         desyncRealVel = nil,
@@ -930,6 +945,25 @@ local function Start()
         end
     end
 
+    local function updDesyncDirBtn()
+        setToggleText(refs.desyncDirBtn, st.desyncDirOn)
+    end
+
+    local function updDesyncDirInputs()
+        local rCell = refs.desyncDirRollInput and refs.desyncDirRollInput.Parent
+        local pCell = refs.desyncDirPitchInput and refs.desyncDirPitchInput.Parent
+        local yCell = refs.desyncDirYawInput and refs.desyncDirYawInput.Parent
+        if rCell then
+            rCell.Visible = st.desyncDirRollOn == true
+        end
+        if pCell then
+            pCell.Visible = st.desyncDirPitchOn == true
+        end
+        if yCell then
+            yCell.Visible = st.desyncDirYawOn == true
+        end
+    end
+
     local function updLoopResetCamBtn()
         setToggleText(refs.loopResetCamBtn, st.resetCamLoopOn)
     end
@@ -1024,6 +1058,8 @@ local function Start()
         updLoopKillBtn()
         updDesyncBtn()
         updDesyncPosBtn()
+        updDesyncDirBtn()
+        updDesyncDirInputs()
         updLoopResetCamBtn()
         updLanguageBtn()
         local noneStr2 = st.language == "jp" and "なし" or "None"
@@ -2221,8 +2257,8 @@ local function Start()
             return
         end
         cam2.CameraType = Enum.CameraType.Custom
-        lp.CameraMaxZoomDistance = 1000
-        lp.CameraMinZoomDistance = 0
+        lp.CameraMaxZoomDistance = 1/0
+        lp.CameraMinZoomDistance = -1/0
         cam2.FieldOfView = 70
     end
 
@@ -2569,10 +2605,45 @@ local function Start()
     local function stylizeDesyncPart(part)
         part.Anchored = false
         part.CanCollide = false
+        pcall(function()
+            part.CanTouch = false
+        end)
+        pcall(function()
+            part.CanQuery = false
+        end)
         part.Massless = true
         part.Material = Enum.Material.ForceField
         part.Color = Color3.new(1, 0, 0)
     end
+
+    local function enforceDesyncDummyNoCollide()
+        local parts = st.desyncDummyParts
+        if not parts or #parts == 0 then
+            local d = st.desyncDummy
+            if not d then
+                return
+            end
+            parts = {}
+            st.desyncDummyParts = parts
+            for _, v in ipairs(d:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    table.insert(parts, v)
+                end
+            end
+        end
+        for _, p in ipairs(parts) do
+            if p and p.Parent then
+                p.CanCollide = false
+                pcall(function()
+                    p.CanTouch = false
+                end)
+                pcall(function()
+                    p.CanQuery = false
+                end)
+            end
+        end
+    end
+
 
     local function createDesyncDummy(original)
         if st.desyncDummy then
@@ -2580,6 +2651,7 @@ local function Start()
             st.desyncDummy = nil
             st.desyncDummyRoot = nil
             st.desyncDummyMotorMap = {}
+        st.desyncDummyParts = {}
             st.desyncSourceChar = nil
         end
         if not original then
@@ -2597,8 +2669,11 @@ local function Start()
         for _, v in ipairs(d:GetDescendants()) do
             if v:IsA("BasePart") then
                 stylizeDesyncPart(v)
+                table.insert(st.desyncDummyParts, v)
             elseif v:IsA("Humanoid") then
                 v.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+            elseif v:IsA("Script") or v:IsA("LocalScript") then
+                v:Destroy()
             elseif v:IsA("Animator") or v:IsA("AnimationController") then
                 v:Destroy()
             elseif v:IsA("Motor6D") then
@@ -2662,7 +2737,7 @@ local function Start()
     end
 
     local function updateDesync()
-        if not (st.desyncOn or st.desyncPosOn) then
+        if not (st.desyncOn or st.desyncPosOn or st.desyncDirOn) then
             return
         end
         local char = lp.Character
@@ -2679,23 +2754,36 @@ local function Start()
             createDesyncDummy(char)
         end
 
+        local curCF = root.CFrame
         if st.desyncOn then
             if not st.desyncSavedCF then
-                st.desyncSavedCF = root.CFrame
+                st.desyncSavedCF = curCF
             end
-        else
-            local pos = st.desyncPosTarget
-            local curCF = root.CFrame
-            if pos then
-                st.desyncSavedCF = CFrame.new(pos, pos + curCF.LookVector)
+        elseif st.desyncPosOn then
+            local pos2 = st.desyncPosTarget
+            if pos2 then
+                st.desyncSavedCF = CFrame.new(pos2, pos2 + curCF.LookVector)
             else
                 st.desyncSavedCF = curCF
             end
+        else
+            st.desyncSavedCF = curCF
         end
 
         local savedCF = st.desyncSavedCF
         if not savedCF then
             return
+        end
+
+        if st.desyncDirOn then
+            local roll = (st.desyncDirRollOn and readNumber(refs.desyncDirRollInput, st.desyncDirRollDeg) or 0)
+            local pitch = (st.desyncDirPitchOn and readNumber(refs.desyncDirPitchInput, st.desyncDirPitchDeg) or 0)
+            local yaw = (st.desyncDirYawOn and readNumber(refs.desyncDirYawInput, st.desyncDirYawDeg) or 0)
+            st.desyncDirRollDeg = roll
+            st.desyncDirPitchDeg = pitch
+            st.desyncDirYawDeg = yaw
+            local rot = CFrame.Angles(math.rad(pitch), math.rad(yaw), math.rad(roll))
+            savedCF = savedCF * rot
         end
 
         st.desyncRealCF = root.CFrame
@@ -2708,6 +2796,9 @@ local function Start()
 
         local dRoot = st.desyncDummyRoot
         if dRoot and dRoot.Parent then
+                    end
+                end
+            end
             dRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             dRoot.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             dRoot.CFrame = savedCF
@@ -2845,6 +2936,9 @@ local function Start()
         if destroyed then
             return
         end
+        if st.desyncOn or st.desyncPosOn or st.desyncDirOn then
+            enforceDesyncDummyNoCollide()
+        end
         updateAntiVoid()
         updateAntiFling()
         updateStatus(dt)
@@ -2924,7 +3018,7 @@ local function Start()
         if destroyed then
             return
         end
-        if not (st.desyncOn or st.desyncPosOn) then
+        if not (st.desyncOn or st.desyncPosOn or st.desyncDirOn) then
             return
         end
         local char = lp.Character
@@ -3020,6 +3114,7 @@ local function Start()
             st.desyncDummyRoot = nil
             st.desyncDummyMotorMap = {}
             st.desyncSourceChar = nil
+            st.desyncDummyParts = nil
         end
     end))
 
@@ -3667,7 +3762,7 @@ local function Start()
         if st.desyncOn then
             st.desyncPosOn = false
         end
-        local nowActive = st.desyncOn or st.desyncPosOn
+        local nowActive = st.desyncOn or st.desyncPosOn or st.desyncDirOn
         if prevActive and not nowActive then
             resetDesyncChar()
         end
@@ -3675,7 +3770,7 @@ local function Start()
         st.desyncRealCF = nil
         st.desyncRealVel = nil
         st.desyncRealRotVel = nil
-        if not st.desyncOn and not st.desyncPosOn then
+        if not st.desyncOn and not st.desyncPosOn and not st.desyncDirOn then
             restoreDesyncMaterials()
             if st.desyncDummy then
                 st.desyncDummy:Destroy()
@@ -3709,7 +3804,7 @@ local function Start()
                 end
             end
         end
-        local nowActive = st.desyncOn or st.desyncPosOn
+        local nowActive = st.desyncOn or st.desyncPosOn or st.desyncDirOn
         if prevActive and not nowActive then
             resetDesyncChar()
         end
@@ -3717,7 +3812,7 @@ local function Start()
         st.desyncRealCF = nil
         st.desyncRealVel = nil
         st.desyncRealRotVel = nil
-        if not st.desyncOn and not st.desyncPosOn then
+        if not st.desyncOn and not st.desyncPosOn and not st.desyncDirOn then
             restoreDesyncMaterials()
             if st.desyncDummy then
                 st.desyncDummy:Destroy()
@@ -3730,6 +3825,37 @@ local function Start()
         updDesyncBtn()
         updDesyncPosBtn()
     end)
+
+    refs.desyncDirBtn.MouseButton1Click:Connect(function()
+        if destroyed then
+            return
+        end
+        local prevActive = st.desyncOn or st.desyncPosOn or st.desyncDirOn
+        st.desyncDirOn = not st.desyncDirOn
+        updDesyncDirBtn()
+        updDesyncDirInputs()
+        local nowActive = st.desyncOn or st.desyncPosOn or st.desyncDirOn or st.desyncDirOn
+        if prevActive and not nowActive then
+            resetDesyncChar()
+        end
+        st.desyncSavedCF = nil
+        st.desyncRealCF = nil
+        st.desyncRealVel = nil
+        st.desyncRealRotVel = nil
+        if not nowActive then
+            restoreDesyncMaterials()
+            if st.desyncDummy then
+                pcall(function()
+                    st.desyncDummy:Destroy()
+                end)
+            end
+            st.desyncDummy = nil
+            st.desyncDummyRoot = nil
+            st.desyncDummyMotorMap = nil
+            st.desyncSourceChar = nil
+        end
+    end)
+
 
     local function openLanguageDialog()
         if refs.languageOverlay then
@@ -3750,8 +3876,8 @@ local function Start()
         inner.Size = UDim2.new(0, 220, 0, 120)
         inner.AnchorPoint = Vector2.new(0.5, 0.5)
         inner.Position = UDim2.new(0.5, 0, 0.5, 0)
-        inner.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        inner.BackgroundTransparency = 0.1
+        inner.BackgroundColor3 = refs.main.BackgroundColor3
+        inner.BackgroundTransparency = refs.main.BackgroundTransparency
         inner.BorderSizePixel = 0
         inner.ZIndex = 1002
         inner.Parent = overlay
@@ -3771,6 +3897,31 @@ local function Start()
         title.ZIndex = 1003
         title.Text = st.language == "jp" and "言語を選択" or "Select Language"
         title.Parent = inner
+
+        local close = Instance.new("TextButton")
+        close.Size = UDim2.new(0, 22, 0, 22)
+        close.Position = UDim2.new(1, -28, 0, 10)
+        close.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        close.BackgroundTransparency = 0.1
+        close.BorderSizePixel = 0
+        close.Font = Enum.Font.Code
+        close.TextSize = 18
+        close.TextColor3 = Color3.new(1, 1, 1)
+        close.AutoButtonColor = false
+        close.Text = "×"
+        close.ZIndex = 1004
+        close.Parent = inner
+        local cc = Instance.new("UICorner")
+        cc.CornerRadius = UDim.new(0, 6)
+        cc.Parent = close
+
+        close.MouseButton1Click:Connect(function()
+            if refs.languageOverlay then
+                refs.languageOverlay:Destroy()
+                refs.languageOverlay = nil
+            end
+        end)
+
 
         local btnFrame = Instance.new("Frame")
         btnFrame.BackgroundTransparency = 1
@@ -3825,10 +3976,7 @@ local function Start()
         local function selectLang(code)
             st.language = code
             applyLanguage()
-            if refs.languageOverlay then
-                refs.languageOverlay:Destroy()
-                refs.languageOverlay = nil
-            end
+            refreshSel()
         end
 
         enBtn.MouseButton1Click:Connect(function()
@@ -3840,12 +3988,154 @@ local function Start()
         end)
     end
 
+    local function openDesyncDirectionDialog()
+        if refs.desyncDirOverlay then
+            return
+        end
+        local overlay = Instance.new("Frame")
+        overlay.Name = "DesyncDirectionOverlay"
+        overlay.Size = UDim2.new(1, 0, 1, 0)
+        overlay.Position = UDim2.new(0, 0, 0, 0)
+        overlay.BackgroundColor3 = Color3.new(0, 0, 0)
+        overlay.BackgroundTransparency = 0.4
+        overlay.BorderSizePixel = 0
+        overlay.ZIndex = 1001
+        overlay.Parent = gui
+        refs.desyncDirOverlay = overlay
+
+        local inner = Instance.new("Frame")
+        inner.Size = UDim2.new(0, 240, 0, 160)
+        inner.AnchorPoint = Vector2.new(0.5, 0.5)
+        inner.Position = UDim2.new(0.5, 0, 0.5, 0)
+        inner.BackgroundColor3 = refs.main.BackgroundColor3
+        inner.BackgroundTransparency = refs.main.BackgroundTransparency
+        inner.BorderSizePixel = 0
+        inner.ZIndex = 1002
+        inner.Parent = overlay
+
+        local ic = Instance.new("UICorner")
+        ic.CornerRadius = UDim.new(0, 10)
+        ic.Parent = inner
+
+        local title = Instance.new("TextLabel")
+        title.BackgroundTransparency = 1
+        title.BorderSizePixel = 0
+        title.Size = UDim2.new(1, -32, 0, 28)
+        title.Position = UDim2.new(0, 10, 0, 8)
+        title.Font = Enum.Font.Code
+        title.TextColor3 = Color3.new(1, 1, 1)
+        title.TextSize = 18
+        title.ZIndex = 1003
+        title.Text = st.language == "jp" and "向きを選択" or "Select Direction"
+        title.TextXAlignment = Enum.TextXAlignment.Left
+        title.Parent = inner
+
+        local close = Instance.new("TextButton")
+        close.Size = UDim2.new(0, 22, 0, 22)
+        close.Position = UDim2.new(1, -28, 0, 10)
+        close.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        close.BackgroundTransparency = 0.1
+        close.BorderSizePixel = 0
+        close.Font = Enum.Font.Code
+        close.TextSize = 18
+        close.TextColor3 = Color3.new(1, 1, 1)
+        close.AutoButtonColor = false
+        close.Text = "×"
+        close.ZIndex = 1004
+        close.Parent = inner
+        local cc = Instance.new("UICorner")
+        cc.CornerRadius = UDim.new(0, 6)
+        cc.Parent = close
+
+        close.MouseButton1Click:Connect(function()
+            if refs.desyncDirOverlay then
+                refs.desyncDirOverlay:Destroy()
+                refs.desyncDirOverlay = nil
+            end
+        end)
+
+        local btnFrame = Instance.new("Frame")
+        btnFrame.BackgroundTransparency = 1
+        btnFrame.BorderSizePixel = 0
+        btnFrame.Size = UDim2.new(1, -20, 0, 100)
+        btnFrame.Position = UDim2.new(0, 10, 0, 46)
+        btnFrame.ZIndex = 1003
+        btnFrame.Parent = inner
+
+        local list2 = Instance.new("UIListLayout")
+        list2.FillDirection = Enum.FillDirection.Vertical
+        list2.Padding = UDim.new(0, 8)
+        list2.SortOrder = Enum.SortOrder.LayoutOrder
+        list2.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        list2.Parent = btnFrame
+
+        local function makeOpt()
+            local b = Instance.new("TextButton")
+            b.Size = UDim2.new(1, 0, 0, 26)
+            b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            b.BackgroundTransparency = 0.1
+            b.BorderSizePixel = 0
+            b.Font = Enum.Font.Code
+            b.TextSize = 14
+            b.TextColor3 = Color3.new(1, 1, 1)
+            b.AutoButtonColor = false
+            b.ZIndex = 1004
+            b.Parent = btnFrame
+            local c2 = Instance.new("UICorner")
+            c2.CornerRadius = UDim.new(0, 6)
+            c2.Parent = b
+            return b
+        end
+
+        local rollBtn = makeOpt()
+        local pitchBtn = makeOpt()
+        local yawBtn = makeOpt()
+
+        local function refresh()
+            rollBtn.Text = st.language == "jp" and "ロール" or "Roll"
+            pitchBtn.Text = st.language == "jp" and "ピッチ" or "Pitch"
+            yawBtn.Text = st.language == "jp" and "ヨー" or "Yaw"
+            rollBtn.BackgroundColor3 = st.desyncDirRollOn and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
+            pitchBtn.BackgroundColor3 = st.desyncDirPitchOn and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
+            yawBtn.BackgroundColor3 = st.desyncDirYawOn and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
+        end
+
+        refresh()
+
+        rollBtn.MouseButton1Click:Connect(function()
+            st.desyncDirRollOn = not st.desyncDirRollOn
+            updDesyncDirInputs()
+            refresh()
+        end)
+
+        pitchBtn.MouseButton1Click:Connect(function()
+            st.desyncDirPitchOn = not st.desyncDirPitchOn
+            updDesyncDirInputs()
+            refresh()
+        end)
+
+        yawBtn.MouseButton1Click:Connect(function()
+            st.desyncDirYawOn = not st.desyncDirYawOn
+            updDesyncDirInputs()
+            refresh()
+        end)
+    end
+
+
     refs.languageBtn.MouseButton1Click:Connect(function()
         if destroyed then
             return
         end
         openLanguageDialog()
     end)
+
+    refs.desyncDirDirectionBtn.MouseButton1Click:Connect(function()
+        if destroyed then
+            return
+        end
+        openDesyncDirectionDialog()
+    end)
+
 
     refs.toggle.InputBegan:Connect(function(input)
         if destroyed then
