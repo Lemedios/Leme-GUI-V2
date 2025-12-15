@@ -937,7 +937,8 @@ local function Start()
         local baseEn = lbl:GetAttribute("LabelEn") or "Target"
         local baseJp = lbl:GetAttribute("LabelJp") or baseEn
         local base = st.language == "jp" and baseJp or baseEn
-        local name = st.flingTarget and st.flingTarget.Name or "None"
+        local noneStr = st.language == "jp" and "なし" or "None"
+        local name = st.flingTarget and st.flingTarget.Name or noneStr
         lbl.Text = base .. " [" .. name .. "]"
     end
 
@@ -1018,6 +1019,19 @@ local function Start()
         updDesyncPosBtn()
         updLoopResetCamBtn()
         updLanguageBtn()
+        local noneStr2 = st.language == "jp" and "なし" or "None"
+        local flyKeyName = st.smartFlyKey and st.smartFlyKey.Name or noneStr2
+        local resetKeyName = st.smartResetKey and st.smartResetKey.Name or noneStr2
+        if refs.smartFlyTrigBtn then
+            refs.smartFlyTrigBtn.Text = st.language == "jp"
+                and ("トリガーキー [" .. flyKeyName .. "]")
+                or ("Trigger [" .. flyKeyName .. "]")
+        end
+        if refs.smartResetTrigBtn then
+            refs.smartResetTrigBtn.Text = st.language == "jp"
+                and ("トリガーキー [" .. resetKeyName .. "]")
+                or ("Trigger [" .. resetKeyName .. "]")
+        end
         updFlingTargetDisplay()
     end
 
@@ -1727,7 +1741,8 @@ local function Start()
             hFill.BackgroundColor3 = col
         end
         if tLbl and tLbl:IsA("TextLabel") then
-            local tName = "Team: None"
+            local noneStr = st.language == "jp" and "なし" or "None"
+            local tName = "Team: " .. noneStr
             local tColor = Color3.fromRGB(200, 200, 255)
             if pl.Team then
                 tName = "Team: " .. pl.Team.Name
@@ -3468,7 +3483,10 @@ local function Start()
             return
         end
         st.smartFlyWaitingKey = true
-        refs.smartFlyTrigBtn.Text = st.language == "jp" and "トリガーキー [...]" or "Trigger [...]"
+        local kName = (st.smartFlyKey and st.smartFlyKey.Name or (st.language == "jp" and "なし" or "None"))
+        refs.smartFlyTrigBtn.Text = st.language == "jp"
+            and ("トリガーキー [" .. kName .. "] ...")
+            or ("Trigger [" .. kName .. "] ...")
     end)
 
     refs.smartResetBtn.MouseButton1Click:Connect(function()
@@ -3490,7 +3508,10 @@ local function Start()
             return
         end
         st.smartResetWaitingKey = true
-        refs.smartResetTrigBtn.Text = st.language == "jp" and "トリガーキー [...]" or "Trigger [...]"
+        local kName = (st.smartResetKey and st.smartResetKey.Name or (st.language == "jp" and "なし" or "None"))
+        refs.smartResetTrigBtn.Text = st.language == "jp"
+            and ("トリガーキー [" .. kName .. "] ...")
+            or ("Trigger [" .. kName .. "] ...")
     end)
 
     refs.resetCamBtn.MouseButton1Click:Connect(function()
@@ -3873,8 +3894,8 @@ local function Start()
                     st.smartFlyKey = input.KeyCode
                 end
                 refs.smartFlyTrigBtn.Text = st.language == "jp"
-                    and ("トリガーキー [" .. (st.smartFlyKey and st.smartFlyKey.Name or "None") .. "]")
-                    or ("Trigger [" .. (st.smartFlyKey and st.smartFlyKey.Name or "None") .. "]")
+                    and ("トリガーキー [" .. (st.smartFlyKey and st.smartFlyKey.Name or (st.language == "jp" and "なし" or "None")) .. "]")
+                    or ("Trigger [" .. (st.smartFlyKey and st.smartFlyKey.Name or (st.language == "jp" and "なし" or "None")) .. "]")
                 return
             end
             if st.smartResetWaitingKey then
@@ -3883,8 +3904,8 @@ local function Start()
                     st.smartResetKey = input.KeyCode
                 end
                 refs.smartResetTrigBtn.Text = st.language == "jp"
-                    and ("トリガーキー [" .. (st.smartResetKey and st.smartResetKey.Name or "None") .. "]")
-                    or ("Trigger [" .. (st.smartResetKey and st.smartResetKey.Name or "None") .. "]")
+                    and ("トリガーキー [" .. (st.smartResetKey and st.smartResetKey.Name or (st.language == "jp" and "なし" or "None")) .. "]")
+                    or ("Trigger [" .. (st.smartResetKey and st.smartResetKey.Name or (st.language == "jp" and "なし" or "None")) .. "]")
                 return
             end
         end
