@@ -21,11 +21,24 @@ local function Start()
     local L = S(game, "Lighting")
     local ws = workspace
     local lp = P.LocalPlayer
-    if not lp then
-        return
+    while not lp do
+        pcall(function()
+            P:GetPropertyChangedSignal("LocalPlayer"):Wait()
+        end)
+        lp = P.LocalPlayer
+        if not lp then
+            task.wait()
+        end
     end
 
-    local uiParent do
+    local uiParent
+    local pg = lp:FindFirstChildOfClass("PlayerGui") or lp:FindFirstChild("PlayerGui")
+    if not pg then
+        pg = lp:WaitForChild("PlayerGui")
+    end
+    uiParent = pg
+
+    if not uiParent then
         local ok, res = pcall(function()
             if typeof(gethui) == "function" then
                 return gethui()
@@ -33,31 +46,29 @@ local function Start()
         end)
         if ok and res then
             uiParent = res
-        else
-            local ok2, res2 = pcall(function()
-                if typeof(get_hidden_gui) == "function" then
-                    return get_hidden_gui()
-                end
-            end)
-            if ok2 and res2 then
-                uiParent = res2
-            else
-                local ok3, res3 = pcall(function()
-                    return game:GetService("CoreGui")
-                end)
-                if ok3 and res3 then
-                    uiParent = res3
-                else
-                    local ok4, res4 = pcall(function()
-                        return lp:WaitForChild("PlayerGui")
-                    end)
-                    if ok4 and res4 then
-                        uiParent = res4
-                    end
-                end
-            end
         end
     end
+
+    if not uiParent then
+        local ok2, res2 = pcall(function()
+            if typeof(get_hidden_gui) == "function" then
+                return get_hidden_gui()
+            end
+        end)
+        if ok2 and res2 then
+            uiParent = res2
+        end
+    end
+
+    if not uiParent then
+        local ok3, res3 = pcall(function()
+            return game:GetService("CoreGui")
+        end)
+        if ok3 and res3 then
+            uiParent = res3
+        end
+    end
+
     if not uiParent then
         return
     end
