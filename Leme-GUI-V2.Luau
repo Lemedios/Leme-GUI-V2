@@ -2263,14 +2263,38 @@ local function Start()
     end
 
     local function applyResetCamera()
-        local cam2 = ws.CurrentCamera
-        if not cam2 then
-            return
+        local cam = ws.CurrentCamera
+        if cam then
+            cam.FieldOfView = 70
+            cam.CameraType = Enum.CameraType.Custom
+            local c = lp.Character
+            local hum = c and c:FindFirstChildOfClass("Humanoid")
+            if hum then
+                cam.CameraSubject = hum
+            end
         end
-        cam2.CameraType = Enum.CameraType.Custom
         lp.CameraMaxZoomDistance = 1/0
         lp.CameraMinZoomDistance = -1/0
-        cam2.FieldOfView = 70
+        pcall(function()
+            lp.CameraMode = Enum.CameraMode.Classic
+        end)
+        pcall(function()
+            lp.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Zoom
+        end)
+        pcall(function()
+            local ugs = UserSettings():GetService("UserGameSettings")
+            if ugs then
+                pcall(function()
+                    ugs.RotationType = Enum.RotationType.MovementRelative
+                end)
+                pcall(function()
+                    ugs.ComputerMovementMode = Enum.ComputerMovementMode.KeyboardMouse
+                end)
+                pcall(function()
+                    ugs.TouchMovementMode = Enum.TouchMovementMode.Default
+                end)
+            end
+        end)
     end
 
     local function applyLoops()
@@ -2996,7 +3020,12 @@ local function Start()
         end
 
         if st.resetCamLoopOn then
+            local cam2 = ws.CurrentCamera
+            local cf = cam2 and cam2.CFrame
             applyResetCamera()
+            if cam2 and cf then
+                cam2.CFrame = cf
+            end
         end
 
         local c = getChar()
