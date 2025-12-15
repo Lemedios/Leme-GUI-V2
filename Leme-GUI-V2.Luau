@@ -167,6 +167,8 @@ local function Start()
         return cn
     end
 
+
+
     local function playOverlay(gui)
         local TS = S(game, "TweenService")
         local f = Instance.new("Frame")
@@ -178,10 +180,6 @@ local function Start()
         f.BorderSizePixel = 0
         f.ZIndex = 1000
         f.Parent = gui
-
-        local twIn = TS:Create(f, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 0.5 })
-        twIn:Play()
-        twIn.Completed:Wait()
 
         local lbl = Instance.new("TextLabel")
         lbl.BackgroundTransparency = 1
@@ -197,23 +195,58 @@ local function Start()
         lbl.ZIndex = f.ZIndex + 1
         lbl.Parent = f
 
-        local twTextIn = TS:Create(lbl, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 })
-        twTextIn:Play()
-        twTextIn.Completed:Wait()
+        local function safeDestroy()
+            if lbl and lbl.Parent then
+                pcall(function()
+                    lbl:Destroy()
+                end)
+            end
+            if f and f.Parent then
+                pcall(function()
+                    f:Destroy()
+                end)
+            end
+        end
 
-        task.wait(1)
+        task.delay(6, safeDestroy)
 
-        local twTextOut = TS:Create(lbl, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 1 })
-        twTextOut:Play()
-        twTextOut.Completed:Wait()
+        pcall(function()
+            TS:Create(f, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 0.5 }):Play()
+        end)
 
-        lbl:Destroy()
+        task.delay(0.3, function()
+            if not lbl or not lbl.Parent then
+                return
+            end
+            pcall(function()
+                TS:Create(lbl, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 }):Play()
+            end)
+        end)
 
-        local twOut = TS:Create(f, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 1 })
-        twOut:Play()
-        twOut.Completed:Wait()
+        task.delay(1.6, function()
+            if not lbl or not lbl.Parent then
+                return
+            end
+            pcall(function()
+                TS:Create(lbl, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 1 }):Play()
+            end)
+        end)
 
-        f:Destroy()
+        task.delay(1.9, function()
+            if lbl and lbl.Parent then
+                pcall(function()
+                    lbl:Destroy()
+                end)
+            end
+            if not f or not f.Parent then
+                return
+            end
+            pcall(function()
+                TS:Create(f, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 1 }):Play()
+            end)
+        end)
+
+        task.delay(2.25, safeDestroy)
     end
 
     local gui = Instance.new("ScreenGui")
@@ -224,10 +257,11 @@ local function Start()
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
     gui.Parent = uiParent
 
+
+
     task.spawn(function()
         playOverlay(gui)
     end)
-
     local FRAME_W = 420
     local FRAME_H = 280
     local MAIN_MARGIN = 10
