@@ -1149,7 +1149,6 @@ local function Start()
         if not hum or not hrp2 then
             return
         end
-        hum.WalkSpeed = 0
         local move = hum.MoveDirection
         local flat = Vector3.new(move.X, 0, move.Z)
         if flat.Magnitude > 0 then
@@ -2874,6 +2873,21 @@ local function Start()
         updateFly(dt)
         updateEsp(dt)
     end))
+
+    addConn(R.RenderStepped:Connect(function()
+        if destroyed then
+            return
+        end
+        if not st.tpOn then
+            return
+        end
+        local c = getChar()
+        local hum = c and c:FindFirstChildWhichIsA("Humanoid")
+        if hum then
+            hum.WalkSpeed = 0
+        end
+    end))
+
 
 
     addConn(R.RenderStepped:Connect(function()
