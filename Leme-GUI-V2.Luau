@@ -168,6 +168,7 @@ local function Start()
     local conns = {}
     local refs = {}
     local allButtons = {}
+    local api = { buttonActions = {} }
     local pressed = getgenv().LemeGUIV2_Pressed
     if type(pressed) ~= "table" then
         pressed = {}
@@ -564,7 +565,7 @@ local function Start()
     createButton(refs.flingGroup, "Touch Fling", "接触吹き飛ばし", 4, "touchFlingBtn", true)
 
     createButton(refs.antiGroup, "Anti Void", "奈落耐性", 1, "antiVoidBtn", true)
-    createButton(refs.antiGroup, "Anti AFK", "放置耐性", 2, "antiAfkBtn", false)
+    createButton(refs.antiGroup, "Anti AFK", "放置耐性", 2, "antiAfkBtn", true)
     createButton(refs.antiGroup, "Anti Fling", "吹き飛ばし耐性", 3, "antiFlingBtn", true)
 
     createButton(refs.humanoidGroup, "Kill Self", "自殺", 1, "killSelfBtn", false)
@@ -639,7 +640,7 @@ local function Start()
     createButton(refs.scriptGroup, "Load ShiftLock", "シフトロックスクリプト", 4, "loadShiftLockBtn", false)
     createButton(refs.scriptGroup, "Unload", "スクリプトを削除", 5, "unloadBtn", false)
     createButton(refs.scriptGroup, "Reload", "リロード", 6, "reloadBtn", false)
-    createButton(refs.scriptGroup, "Copy Config", "設定コピー", 7, "copyConfigBtn", false)
+    createButton(refs.scriptGroup, "Copy Config", "設定をコピー", 7, "copyConfigBtn", false)
     createButton(refs.scriptGroup, "Language", "言語", 8, "languageBtn", false)
 
     createButton(refs.teleportGroup, "TP to", "テレポート", 1, "tpToBtn", false)
@@ -729,6 +730,7 @@ local function Start()
     end
 
     local st = {
+        antiAfkOn = false,
         noclipOn = false,
         noclipSaved = {},
         tpOn = false,
@@ -837,6 +839,7 @@ local function Start()
     end
 
     local antiAfkLoaded = false
+    local antiAfkConn = nil
     local function setToggleText(btn, isOn)
         if not btn then
             return
@@ -867,6 +870,10 @@ local function Start()
 
     local function updAntiVoidBtn()
         setToggleText(refs.antiVoidBtn, st.antiVoidOn)
+    end
+
+    local function updAntiAfkBtn()
+        setToggleText(refs.antiAfkBtn, st.antiAfkOn)
     end
 
     local function updAntiFlingBtn()
@@ -1049,9 +1056,21 @@ local function Start()
             local en = tb:GetAttribute("PrefixEn")
             local jp = tb:GetAttribute("PrefixJp") or en
             if en then
-                local oldPf = tb:GetAttribute("Prefix") or en
                 local tx = tb.Text or ""
-                local value = tx:sub(#oldPf + 1)
+                local oldPf = tb:GetAttribute("Prefix") or en
+                local value = tx
+
+                if en and #en > 0 and value:sub(1, #en) == en then
+                    value = value:sub(#en + 1)
+                end
+                if jp and #jp > 0 and value:sub(1, #jp) == jp then
+                    value = value:sub(#jp + 1)
+                end
+                if oldPf and #oldPf > 0 and value:sub(1, #oldPf) == oldPf then
+                    value = value:sub(#oldPf + 1)
+                end
+
+                value = string.gsub(value, "^%s+", "")
                 local newPf = st.language == "jp" and jp or en
                 tb:SetAttribute("Prefix", newPf)
                 tb.Text = newPf .. value
@@ -1062,6 +1081,7 @@ local function Start()
         updTpBtn()
         updAnchorBtn()
         updAntiVoidBtn()
+        updAntiAfkBtn()
         updAntiFlingBtn()
         updTouchFlingBtn()
         updFlyJumpBtn()
@@ -1128,32 +1148,35 @@ local function Start()
         end
     end
 
-    local function enableAntiAfk()
-        local env = typeof(getgenv) == "function" and getgenv() or _G
-        if env.AntiAFK or antiAfkLoaded then
-            pcall(function()
-                SG:SetCore("SendNotification", { Title = "Anti AFK", Text = "Already Loaded", Duration = 5 })
+    local function setAntiAfkEnabled(on)
+        if on then
+            if antiAfkConn and antiAfkConn.Connected then
+                return
+            end
+            if not vUser then
+                return
+            end
+            antiAfkConn = lp.Idled:Connect(function()
+                pcall(function()
+                    vUser:CaptureController()
+                    vUser:SetKeyDown(Enum.KeyCode.F15)
+                    vUser:SetKeyUp(Enum.KeyCode.F15)
+                end)
             end)
-            return
-        end
-        if typeof(getgenv) == "function" then
-            env.AntiAFK = true
         else
-            antiAfkLoaded = true
+            if antiAfkConn then
+                pcall(function()
+                    antiAfkConn:Disconnect()
+                end)
+            end
+            antiAfkConn = nil
         end
-        if not vUser then
-            return
-        end
-        lp.Idled:Connect(function()
-            pcall(function()
-                vUser:CaptureController()
-                vUser:SetKeyDown(Enum.KeyCode.F15)
-                vUser:SetKeyUp(Enum.KeyCode.F15)
-            end)
-        end)
-        pcall(function()
-            SG:SetCore("SendNotification", { Title = "Anti AFK", Text = "Load Completed", Duration = 5 })
-        end)
+    end
+
+    local function toggleAntiAfk()
+        st.antiAfkOn = not st.antiAfkOn
+        setToggleText(refs.antiAfkBtn, st.antiAfkOn)
+        setAntiAfkEnabled(st.antiAfkOn)
     end
 
     local FLOAT_NAME = "FloatPart"
@@ -2232,6 +2255,14 @@ local function Start()
         if v then
             return v
         end
+        local last = nil
+        for n in string.gmatch(tx, "[-]?%d+%.?%d*") do
+            last = n
+        end
+        local v2 = tonumber(last)
+        if v2 then
+            return v2
+        end
         return fallback
     end
 
@@ -3176,12 +3207,13 @@ local function Start()
         rejoin()
     end)
 
-    refs.killSelfBtn.Activated:Connect(function()
+    api.buttonActions["killSelfBtn"] = function()
         if destroyed then
             return
         end
         killSelf()
-    end)
+    end
+    refs.killSelfBtn.Activated:Connect(api.buttonActions["killSelfBtn"])
 
     refs.loopKillBtn.Activated:Connect(function()
         if destroyed then
@@ -3191,12 +3223,13 @@ local function Start()
         updLoopKillBtn()
     end)
 
-    refs.antiAfkBtn.Activated:Connect(function()
+    api.buttonActions["antiAfkBtn"] = function()
         if destroyed then
             return
         end
-        enableAntiAfk()
-    end)
+        toggleAntiAfk()
+    end
+    refs.antiAfkBtn.Activated:Connect(api.buttonActions["antiAfkBtn"])
 
     refs.noclipBtn.Activated:Connect(function()
         if destroyed then
@@ -3313,7 +3346,7 @@ local function Start()
         updChatBtn()
     end)
 
-    refs.instantPromptBtn.Activated:Connect(function()
+    api.buttonActions["instantPromptBtn"] = function()
         if destroyed then
             return
         end
@@ -3326,9 +3359,10 @@ local function Start()
             apply(descendant)
         end
         workspace.DescendantAdded:Connect(apply)
-    end)
+    end
+    refs.instantPromptBtn.Activated:Connect(api.buttonActions["instantPromptBtn"])
 
-    refs.setFovBtn.Activated:Connect(function()
+    api.buttonActions["setFovBtn"] = function()
         if destroyed then
             return
         end
@@ -3342,7 +3376,8 @@ local function Start()
         if cam2 then
             cam2.FieldOfView = st.fovValue
         end
-    end)
+    end
+    refs.setFovBtn.Activated:Connect(api.buttonActions["setFovBtn"])
 
     refs.loopFovBtn.Activated:Connect(function()
         if destroyed then
@@ -3364,7 +3399,7 @@ local function Start()
         refs.fovInput.Text = pf .. tostring(st.fovValue)
     end)
 
-    refs.setSpeedBtn.Activated:Connect(function()
+    api.buttonActions["setSpeedBtn"] = function()
         if destroyed then
             return
         end
@@ -3379,7 +3414,8 @@ local function Start()
         if hum then
             hum.WalkSpeed = st.speedValue
         end
-    end)
+    end
+    refs.setSpeedBtn.Activated:Connect(api.buttonActions["setSpeedBtn"])
 
     refs.loopSpeedBtn.Activated:Connect(function()
         if destroyed then
@@ -3401,7 +3437,7 @@ local function Start()
         refs.speedInput.Text = pf .. tostring(st.speedValue)
     end)
 
-    refs.setJumpBtn.Activated:Connect(function()
+    api.buttonActions["setJumpBtn"] = function()
         if destroyed then
             return
         end
@@ -3421,7 +3457,8 @@ local function Start()
                 hum.JumpHeight = st.jumpValue
             end
         end
-    end)
+    end
+    refs.setJumpBtn.Activated:Connect(api.buttonActions["setJumpBtn"])
 
     refs.loopJumpBtn.Activated:Connect(function()
         if destroyed then
@@ -3443,7 +3480,7 @@ local function Start()
         refs.jumpInput.Text = pf .. tostring(st.jumpValue)
     end)
 
-    refs.setGravBtn.Activated:Connect(function()
+    api.buttonActions["setGravBtn"] = function()
         if destroyed then
             return
         end
@@ -3454,7 +3491,8 @@ local function Start()
         local pf = refs.gravInput:GetAttribute("Prefix") or ""
         refs.gravInput.Text = pf .. tostring(st.gravValue)
         ws.Gravity = st.gravValue
-    end)
+    end
+    refs.setGravBtn.Activated:Connect(api.buttonActions["setGravBtn"])
 
     refs.loopGravBtn.Activated:Connect(function()
         if destroyed then
@@ -3476,7 +3514,7 @@ local function Start()
         refs.gravInput.Text = pf .. tostring(st.gravValue)
     end)
 
-    refs.setMaxZoomBtn.Activated:Connect(function()
+    api.buttonActions["setMaxZoomBtn"] = function()
         if destroyed then
             return
         end
@@ -3487,7 +3525,8 @@ local function Start()
         local pf = refs.maxZoomInput:GetAttribute("Prefix") or ""
         refs.maxZoomInput.Text = pf .. tostring(st.maxZoomValue)
         lp.CameraMaxZoomDistance = st.maxZoomValue
-    end)
+    end
+    refs.setMaxZoomBtn.Activated:Connect(api.buttonActions["setMaxZoomBtn"])
 
     refs.loopMaxZoomBtn.Activated:Connect(function()
         if destroyed then
@@ -3509,7 +3548,7 @@ local function Start()
         refs.maxZoomInput.Text = pf .. tostring(st.maxZoomValue)
     end)
 
-    refs.setMinZoomBtn.Activated:Connect(function()
+    api.buttonActions["setMinZoomBtn"] = function()
         if destroyed then
             return
         end
@@ -3520,7 +3559,8 @@ local function Start()
         local pf = refs.minZoomInput:GetAttribute("Prefix") or ""
         refs.minZoomInput.Text = pf .. tostring(st.minZoomValue)
         lp.CameraMinZoomDistance = st.minZoomValue
-    end)
+    end
+    refs.setMinZoomBtn.Activated:Connect(api.buttonActions["setMinZoomBtn"])
 
     refs.loopMinZoomBtn.Activated:Connect(function()
         if destroyed then
@@ -3568,7 +3608,7 @@ local function Start()
         updNoFogBtn()
     end)
 
-    refs.setFogBtn.Activated:Connect(function()
+    api.buttonActions["setFogBtn"] = function()
         if destroyed then
             return
         end
@@ -3578,7 +3618,8 @@ local function Start()
         L.FogColor = st.fogColor
         L.FogStart = st.fogStart
         L.FogEnd = st.fogEnd
-    end)
+    end
+    refs.setFogBtn.Activated:Connect(api.buttonActions["setFogBtn"])
 
     refs.loopFogBtn.Activated:Connect(function()
         if destroyed then
@@ -3613,12 +3654,13 @@ local function Start()
         parseFogEnd()
     end)
 
-    refs.fbBtn.Activated:Connect(function()
+    api.buttonActions["fbBtn"] = function()
         if destroyed then
             return
         end
         applyFullBright()
-    end)
+    end
+    refs.fbBtn.Activated:Connect(api.buttonActions["fbBtn"])
 
     refs.loopFbBtn.Activated:Connect(function()
         if destroyed then
@@ -3663,7 +3705,7 @@ local function Start()
         updSmartFlyBtn()
     end)
 
-    refs.smartFlyTrigBtn.Activated:Connect(function()
+    api.buttonActions["smartFlyTrigBtn"] = function()
         if destroyed then
             return
         end
@@ -3675,7 +3717,8 @@ local function Start()
         refs.smartFlyTrigBtn.Text = st.language == "jp"
             and ("トリガーキー [" .. kName .. "] ...")
             or ("Trigger [" .. kName .. "] ...")
-    end)
+    end
+    refs.smartFlyTrigBtn.Activated:Connect(api.buttonActions["smartFlyTrigBtn"])
 
     refs.smartResetBtn.Activated:Connect(function()
         if destroyed then
@@ -3688,7 +3731,7 @@ local function Start()
         updSmartResetBtn()
     end)
 
-    refs.smartResetTrigBtn.Activated:Connect(function()
+    api.buttonActions["smartResetTrigBtn"] = function()
         if destroyed then
             return
         end
@@ -3700,14 +3743,16 @@ local function Start()
         refs.smartResetTrigBtn.Text = st.language == "jp"
             and ("トリガーキー [" .. kName .. "] ...")
             or ("Trigger [" .. kName .. "] ...")
-    end)
+    end
+    refs.smartResetTrigBtn.Activated:Connect(api.buttonActions["smartResetTrigBtn"])
 
-    refs.resetCamBtn.Activated:Connect(function()
+    api.buttonActions["resetCamBtn"] = function()
         if destroyed then
             return
         end
         applyResetCamera()
-    end)
+    end
+    refs.resetCamBtn.Activated:Connect(api.buttonActions["resetCamBtn"])
 
     refs.loopResetCamBtn.Activated:Connect(function()
         if destroyed then
@@ -3717,33 +3762,37 @@ local function Start()
         updLoopResetCamBtn()
     end)
 
-    refs.loadIYBtn.Activated:Connect(function()
+    api.buttonActions["loadIYBtn"] = function()
         if destroyed then
             return
         end
         runUrl("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source")
-    end)
+    end
+    refs.loadIYBtn.Activated:Connect(api.buttonActions["loadIYBtn"])
 
-    refs.loadRSpyBtn.Activated:Connect(function()
+    api.buttonActions["loadRSpyBtn"] = function()
         if destroyed then
             return
         end
         runUrl("https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua")
-    end)
+    end
+    refs.loadRSpyBtn.Activated:Connect(api.buttonActions["loadRSpyBtn"])
 
-    refs.loadDexBtn.Activated:Connect(function()
+    api.buttonActions["loadDexBtn"] = function()
         if destroyed then
             return
         end
         runUrl("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua")
-    end)
+    end
+    refs.loadDexBtn.Activated:Connect(api.buttonActions["loadDexBtn"])
 
-    refs.loadShiftLockBtn.Activated:Connect(function()
+    api.buttonActions["loadShiftLockBtn"] = function()
         if destroyed then
             return
         end
         runUrl("https://rawscripts.net/raw/Universal-Script-Shiftlock-script-42373")
-    end)
+    end
+    refs.loadShiftLockBtn.Activated:Connect(api.buttonActions["loadShiftLockBtn"])
 
     refs.tpPosInput.FocusLost:Connect(function()
         if destroyed then
@@ -4173,19 +4222,21 @@ local function Start()
     end
 
 
-    refs.languageBtn.Activated:Connect(function()
+    api.buttonActions["languageBtn"] = function()
         if destroyed then
             return
         end
         openLanguageDialog()
-    end)
+    end
+    refs.languageBtn.Activated:Connect(api.buttonActions["languageBtn"])
 
-    refs.desyncDirDirectionBtn.Activated:Connect(function()
+    api.buttonActions["desyncDirDirectionBtn"] = function()
         if destroyed then
             return
         end
         openDesyncDirectionDialog()
-    end)
+    end
+    refs.desyncDirDirectionBtn.Activated:Connect(api.buttonActions["desyncDirDirectionBtn"])
 
 
     refs.toggle.InputBegan:Connect(function(input)
@@ -4335,6 +4386,7 @@ local function Start()
     updTpBtn()
     updAnchorBtn()
     updAntiVoidBtn()
+    updAntiAfkBtn()
     updAntiFlingBtn()
     updTouchFlingBtn()
     updFlyJumpBtn()
@@ -4364,9 +4416,68 @@ local function Start()
     updLanguageBtn()
     applyLanguage()
 
+    function C.D()
+        if destroyed then
+            return
+        end
+        destroyed = true
+        touchStopRequested = true
+        if hbConn and hbConn.Connected then
+            hbConn:Disconnect()
+        end
+        R:UnbindFromRenderStep("Leme_DesyncRevert")
+        for i = #conns, 1, -1 do
+            local c = conns[i]
+            conns[i] = nil
+            if c and c.Connected then
+                c:Disconnect()
+            end
+        end
+        clearNameEsp()
+        clearMiniEsp()
+        if st.statusGui then
+            st.statusGui:Destroy()
+            st.statusGui = nil
+            st.statusLabel = nil
+        end
+        removeHoverAlign()
+        restoreDesyncMaterials()
+        if st.desyncDummy then
+            st.desyncDummy:Destroy()
+            st.desyncDummy = nil
+            st.desyncDummyRoot = nil
+            st.desyncDummyMotorMap = {}
+            st.desyncSourceChar = nil
+        end
+        pcall(function()
+            gui:Destroy()
+        end)
+        if g.LemeGUIV2 == C then
+            g.LemeGUIV2 = nil
+        end
+    end
+
+    api.buttonActions["unloadBtn"] = function()
+        if destroyed then
+            return
+        end
+        C.D()
+    end
+    refs.unloadBtn.Activated:Connect(api.buttonActions["unloadBtn"])
+
+    api.buttonActions["reloadBtn"] = function()
+        if destroyed then
+            return
+        end
+        C.D()
+        task.defer(Start)
+    end
+    refs.reloadBtn.Activated:Connect(api.buttonActions["reloadBtn"])
+
+
     do
         local cfgSrc = [==[
-return function(getgenv, refs, st, allButtons, gui, ws, lp)
+return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
     local function ensurePressed()
         local p = getgenv().LemeGUIV2_Pressed
         if type(p) ~= "table" then
@@ -4375,6 +4486,13 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp)
         end
         return p
     end
+
+    local exclude = {
+        flingBtn = true,
+        rejoinBtn = true,
+        tpToBtn = true,
+        setPosBtn = true
+    }
 
     local function isOn(btn)
         local t = btn and btn.Text or ""
@@ -4387,80 +4505,299 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp)
         return false
     end
 
+    local function setToggleText(btn, on)
+        if not btn then
+            return
+        end
+        local baseEn = btn:GetAttribute("TextEn") or btn.Text
+        local baseJp = btn:GetAttribute("TextJp") or baseEn
+        local base = (st and st.language == "jp") and baseJp or baseEn
+        local onStr, offStr
+        if st and st.language == "jp" then
+            onStr, offStr = "オン", "オフ"
+        else
+            onStr, offStr = "ON", "OFF"
+        end
+        btn.Text = string.format("%s [%s]", base, on and onStr or offStr)
+    end
+
     local function esc(v)
         v = tostring(v or "")
-        v = string.gsub(v, "\\", "\\\\")
-        v = string.gsub(v, "\n", "\\n")
-        v = string.gsub(v, "=", "\\=")
+        v = string.gsub(v, "\\\\", "\\\\\\\\")
+        v = string.gsub(v, "\n", "\\\\n")
+        v = string.gsub(v, "=", "\\\\=")
         return v
     end
 
     local function unesc(v)
         v = tostring(v or "")
-        v = string.gsub(v, "\\n", "\n")
-        v = string.gsub(v, "\\=", "=")
-        v = string.gsub(v, "\\\\", "\\")
+        v = string.gsub(v, "\\\\n", "\n")
+        v = string.gsub(v, "\\\\=", "=")
+        v = string.gsub(v, "\\\\\\\\", "\\\\")
         return v
     end
 
-    local function groupOf(inst)
-        local g = "ui"
-        pcall(function()
-            local cg = inst:GetAttribute("CfgGroup")
-            if type(cg) == "string" and cg ~= "" then
-                g = cg
+    local function groupKey(inst)
+        local cur = inst
+        while cur do
+            local nm = cur.Name
+            if type(nm) == "string" and string.sub(nm, -5) == "Group" then
+                return string.lower(string.sub(nm, 1, #nm - 5))
             end
-        end)
-        return g
+            cur = cur.Parent
+        end
+        return "ui"
     end
 
     local function findRef(key)
-        local v = refs[key]
+        local v = refs and refs[key]
         if v then
             return v
         end
-        local k2 = key .. "Btn"
-        v = refs[k2]
+        v = refs and refs[key .. "Btn"]
         if v then
             return v
         end
-        local k3 = key .. "Input"
-        v = refs[k3]
+        v = refs and refs[key .. "Input"]
         if v then
             return v
         end
         return nil
     end
 
+    local function stripAllPrefixes(tb, txt)
+        txt = tostring(txt or "")
+        local p = tb:GetAttribute("Prefix") or ""
+        local en = tb:GetAttribute("PrefixEn") or ""
+        local jp = tb:GetAttribute("PrefixJp") or ""
+        local function stripOne(pref)
+            if type(pref) == "string" and pref ~= "" then
+                if string.sub(txt, 1, #pref) == pref then
+                    txt = string.sub(txt, #pref + 1)
+                end
+            end
+        end
+        stripOne(p)
+        stripOne(en)
+        stripOne(jp)
+        txt = string.gsub(txt, "^%s+", "")
+        txt = string.gsub(txt, "%s+$", "")
+        return txt
+    end
+
+    local inputToSt = {
+        desyncDirRollInput = "desyncDirRollDeg",
+        desyncDirPitchInput = "desyncDirPitchDeg",
+        desyncDirYawInput = "desyncDirYawDeg",
+        fovInput = "fovValue",
+        speedInput = "speedValue",
+        jumpInput = "jumpValue",
+        gravInput = "gravValue",
+        maxZoomInput = "maxZoomValue",
+        minZoomInput = "minZoomValue",
+        flySpeedInput = "flySpeed",
+        tpWalkSpeedInput = "tpSpeed"
+    }
+
     local function buildConfigText()
         local out = {}
-        table.insert(out, 'getgenv().LemeGUIV2_Config = [[')
+        table.insert(out, "getgenv().LemeGUIV2_Config = [[")
         local pressed = ensurePressed()
-        for _, b in ipairs(allButtons) do
+
+        for _, b in ipairs(allButtons or {}) do
             local key = b.Name
-            local g = groupOf(b)
-            if b:GetAttribute("IsToggle") then
-                table.insert(out, g .. ',togglebutton,' .. key .. '=' .. (isOn(b) and "true" or "false"))
-            else
-                table.insert(out, g .. ',button,' .. key .. '=' .. ((pressed[key] == true) and "true" or "false"))
+            if not exclude[key] then
+                local g = groupKey(b)
+                if b:GetAttribute("IsToggle") then
+                    table.insert(out, g .. ",togglebutton," .. key .. "=" .. (isOn(b) and "true" or "false"))
+                else
+                    table.insert(out, g .. ",button," .. key .. "=" .. ((pressed[key] == true) and "true" or "false"))
+                end
             end
         end
-        for k, v in pairs(refs) do
+
+        for k, v in pairs(refs or {}) do
             if typeof(v) == "Instance" and v:IsA("TextBox") then
-                local g2 = groupOf(v)
-                table.insert(out, g2 .. ',input,' .. k .. '=' .. esc(v.Text))
+                local g2 = groupKey(v)
+                local body = stripAllPrefixes(v, v.Text)
+
+                local hasPf = (v:GetAttribute("Prefix") or v:GetAttribute("PrefixEn") or v:GetAttribute("PrefixJp")) and true or false
+                if hasPf then
+                    local nums = {}
+                    for n in string.gmatch(body, "[-]?%d+%.?%d*") do
+                        table.insert(nums, n)
+                    end
+                    if #nums > 0 then
+                        body = table.concat(nums, " ")
+                    end
+                end
+
+                if st and inputToSt and inputToSt[k] and type(st[inputToSt[k]]) == "number" then
+                    body = tostring(st[inputToSt[k]])
+                end
+
+                table.insert(out, g2 .. ",input," .. k .. "=" .. esc(body))
             end
         end
-        table.insert(out, ']]')
-        table.insert(out, 'if getgenv().LemeGUIV2_ApplyConfig then')
-        table.insert(out, '    getgenv().LemeGUIV2_ApplyConfig(getgenv().LemeGUIV2_Config)')
-        table.insert(out, 'end')
+
+        if st and st.language then
+            table.insert(out, "state,value,language=" .. esc(st.language))
+        end
+
+        if st and st.smartFlyKey then
+            table.insert(out, "state,keycode,smartFlyKey=" .. st.smartFlyKey.Name)
+        end
+        if st and st.smartResetKey then
+            table.insert(out, "state,keycode,smartResetKey=" .. st.smartResetKey.Name)
+        end
+
+        if st then
+            local keys = { "desyncDirRollOn", "desyncDirPitchOn", "desyncDirYawOn" }
+            for _, kk in ipairs(keys) do
+                if type(st[kk]) == "boolean" then
+                    table.insert(out, "state,toggle," .. kk .. "=" .. (st[kk] and "true" or "false"))
+                end
+            end
+        end
+
+        table.insert(out, "]]")
+        table.insert(out, "if getgenv().LemeGUIV2_ApplyConfig then")
+        table.insert(out, "    getgenv().LemeGUIV2_ApplyConfig(getgenv().LemeGUIV2_Config)")
+        table.insert(out, "end")
         return table.concat(out, "\n")
+    end
+
+    local stKeyByBtn = {
+        loopFovBtn = "fovLoop",
+        loopSpeedBtn = "speedLoop",
+        loopJumpBtn = "jumpLoop",
+        loopGravBtn = "gravLoop",
+        loopMaxZoomBtn = "maxZoomLoop",
+        loopMinZoomBtn = "minZoomLoop",
+        loopFogBtn = "fogLoop",
+        loopFbBtn = "fullBrightLoopOn",
+        loopResetCamBtn = "resetCamLoopOn"
+    }
+
+    local function applySimpleToggle(btnKey, want)
+        local btn = findRef(btnKey)
+        if not btn then
+            return
+        end
+        local stKey = stKeyByBtn[btnKey]
+        if not stKey then
+            stKey = string.gsub(btnKey, "Btn$", "") .. "On"
+        end
+        if st and type(st[stKey]) == "boolean" then
+            st[stKey] = want
+        elseif st and stKey == "resetCamLoopOn" then
+            st.resetCamLoopOn = want
+        end
+        setToggleText(btn, want)
+    end
+
+    local function applyFlyMode(wantFly, wantHover, wantVel)
+        local mode = "none"
+        if wantFly then
+            mode = "fly"
+        elseif wantHover then
+            mode = "hover"
+        elseif wantVel then
+            mode = "vel"
+        end
+        if api and type(api.setFlyMode) == "function" then
+            if st and st.flyMode == mode then
+                return
+            end
+            api.setFlyMode(mode)
+        else
+            if st then
+                st.flyMode = mode
+            end
+            local b1 = findRef("flyBtn")
+            local b2 = findRef("hoverBtn")
+            local b3 = findRef("velBtn")
+            if b1 then setToggleText(b1, mode == "fly") end
+            if b2 then setToggleText(b2, mode == "hover") end
+            if b3 then setToggleText(b3, mode == "vel") end
+        end
+    end
+
+    local function applyDesyncStates(wantDesync, wantPos, wantDir)
+        wantDesync = (wantDesync == true)
+        wantPos = (wantPos == true)
+        wantDir = (wantDir == true)
+
+        if wantDesync and wantPos then
+            wantPos = false
+        end
+
+        local prevActive = (st.desyncOn or st.desyncPosOn or st.desyncDirOn) and true or false
+
+        st.desyncOn = wantDesync
+        st.desyncPosOn = wantPos
+        st.desyncDirOn = wantDir
+
+        if st.desyncPosOn then
+            if not st.desyncPosTarget then
+                local c = lp and lp.Character
+                local hrp = c and c:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local p2 = hrp.Position
+                    st.desyncPosTarget = Vector3.new(p2.X, p2.Y, p2.Z)
+                end
+            end
+        end
+
+        local nowActive = (st.desyncOn or st.desyncPosOn or st.desyncDirOn) and true or false
+        if prevActive and (not nowActive) then
+            if api and type(api.resetDesyncChar) == "function" then
+                api.resetDesyncChar()
+            end
+        end
+
+        st.desyncSavedCF = nil
+        st.desyncRealCF = nil
+        st.desyncRealVel = nil
+        st.desyncRealRotVel = nil
+
+        if not nowActive then
+            if api and type(api.restoreDesyncMaterials) == "function" then
+                api.restoreDesyncMaterials()
+            end
+            if st.desyncDummy then
+                pcall(function()
+                    st.desyncDummy:Destroy()
+                end)
+            end
+            st.desyncDummy = nil
+            st.desyncDummyRoot = nil
+            st.desyncDummyMotorMap = nil
+            st.desyncSourceChar = nil
+        end
+
+        local b1 = findRef("desyncBtn")
+        local b2 = findRef("desyncPosBtn")
+        local b3 = findRef("desyncDirBtn")
+        if b1 then setToggleText(b1, st.desyncOn == true) end
+        if b2 then setToggleText(b2, st.desyncPosOn == true) end
+        if b3 then setToggleText(b3, st.desyncDirOn == true) end
+
+        if api and type(api.updDesyncDirInputs) == "function" then
+            api.updDesyncDirInputs()
+        end
     end
 
     local function applyConfigText(cfg)
         cfg = tostring(cfg or "")
         local pressed = ensurePressed()
+
+        local wantToggles = {}
+        local wantButtons = {}
+        local wantStateToggles = {}
+        local wantLanguage = nil
+        local wantKeys = {}
+
         for line in string.gmatch(cfg, "([^\n]+)") do
             local _, typ, rest = string.match(line, "^([^,]+),([^,]+),(.+)$")
             if typ and rest then
@@ -4469,30 +4806,124 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp)
                     if typ == "input" then
                         local tb = findRef(key)
                         if tb and typeof(tb) == "Instance" and tb:IsA("TextBox") then
-                            tb.Text = unesc(val)
+                            local body = unesc(val)
+                            local pf = tb:GetAttribute("Prefix") or ""
+                            tb.Text = tostring(pf) .. tostring(body)
+                            if st and inputToSt[key] then
+                                local n = tonumber(stripAllPrefixes(tb, tb.Text))
+                                if n then
+                                    st[inputToSt[key]] = n
+                                end
+                            end
                         end
                     elseif typ == "togglebutton" then
-                        local btn = findRef(key)
-                        if btn and typeof(btn) == "Instance" and btn:IsA("GuiButton") then
-                            local want = (val == "true")
-                            local cur = isOn(btn)
-                            if want ~= cur then
-                                pcall(function()
-                                    btn:Activate()
-                                end)
-                            end
-                        end
+                        wantToggles[key] = (val == "true")
                     elseif typ == "button" then
-                        local btn2 = findRef(key)
-                        if btn2 and typeof(btn2) == "Instance" and btn2:IsA("GuiButton") then
-                            if val == "true" and not (pressed[key] == true) then
-                                pressed[key] = true
-                                pcall(function()
-                                    btn2:Activate()
-                                end)
-                            end
+                        wantButtons[key] = (val == "true")
+                    elseif typ == "value" then
+                        if key == "language" then
+                            wantLanguage = unesc(val)
                         end
+                    elseif typ == "toggle" then
+                        wantStateToggles[key] = (val == "true")
+                    elseif typ == "keycode" then
+                        wantKeys[key] = val
                     end
+                end
+            end
+        end
+
+        if st then
+            for k, v in pairs(wantStateToggles) do
+                if type(st[k]) == "boolean" then
+                    st[k] = v
+                end
+            end
+        end
+
+        if st and wantLanguage then
+            st.language = wantLanguage
+            if api and type(api.applyLanguage) == "function" then
+                api.applyLanguage()
+            end
+        end
+
+        if st and wantKeys then
+            local function setKey(name, kcName)
+                if not kcName then
+                    return
+                end
+                pcall(function()
+                    local kc = Enum.KeyCode[kcName]
+                    if kc then
+                        st[name] = kc
+                    end
+                end)
+            end
+            setKey("smartFlyKey", wantKeys.smartFlyKey)
+            setKey("smartResetKey", wantKeys.smartResetKey)
+        end
+
+        local wantFly = wantToggles.flyBtn
+        local wantHover = wantToggles.hoverBtn
+        local wantVel = wantToggles.velBtn
+        applyFlyMode(wantFly, wantHover, wantVel)
+        wantToggles.flyBtn = nil
+        wantToggles.hoverBtn = nil
+        wantToggles.velBtn = nil
+
+        local wantDesync = wantToggles.desyncBtn
+        local wantPos = wantToggles.desyncPosBtn
+        local wantDir = wantToggles.desyncDirBtn
+        if wantDesync ~= nil or wantPos ~= nil or wantDir ~= nil then
+            applyDesyncStates(wantDesync, wantPos, wantDir)
+        end
+        wantToggles.desyncBtn = nil
+        wantToggles.desyncPosBtn = nil
+        wantToggles.desyncDirBtn = nil
+
+        local special = {
+            noclipBtn = "toggleNoclip",
+            tpWalkBtn = "toggleTpWalk",
+            anchorBtn = "toggleAnchor",
+            antiVoidBtn = "toggleAntiVoid",
+            antiFlingBtn = "toggleAntiFling",
+            touchFlingBtn = "toggleTouchFling",
+            flyJumpBtn = "toggleFlyJump",
+            espBtn = "toggleESP",
+            miniEspBtn = "toggleMiniESP",
+            statusBtn = "toggleStatus",
+            noMaxZoomBtn = "toggleNoMaxZoom",
+            noMinZoomBtn = "toggleNoMinZoom"
+        }
+
+        for key, want in pairs(wantToggles) do
+            if not exclude[key] then
+                local fnName = special[key]
+                if fnName and api and type(api[fnName]) == "function" then
+                    local stKey = string.gsub(key, "Btn$", "") .. "On"
+                    local cur = false
+                    if st and type(st[stKey]) == "boolean" then
+                        cur = st[stKey]
+                    end
+                    if cur ~= want then
+                        api[fnName]()
+                    end
+                    local btn = findRef(key)
+                    if btn then
+                        setToggleText(btn, want)
+                    end
+                else
+                    applySimpleToggle(key, want)
+                end
+            end
+        end
+
+        for key, want in pairs(wantButtons) do
+            if want and (not exclude[key]) then
+                pressed[key] = true
+                if api and type(api.buttonActions) == "table" and type(api.buttonActions[key]) == "function" then
+                    api.buttonActions[key]()
                 end
             end
         end
@@ -4506,8 +4937,8 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp)
         return buildConfigText()
     end
 
-    if refs.copyConfigBtn then
-        refs.copyConfigBtn.Activated:Connect(function()
+    if refs and refs.copyConfigBtn then
+        api.buttonActions["copyConfigBtn"] = function()
             local txt = buildConfigText()
             local ok, did = pcall(function()
                 if typeof(setclipboard) == "function" then
@@ -4581,7 +5012,8 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp)
             tb.Text = txt
             tb.ZIndex = 1202
             tb.Parent = inner
-        end)
+        end
+        refs.copyConfigBtn.Activated:Connect(api.buttonActions["copyConfigBtn"])
     end
 
     if getgenv().LemeGUIV2_Config then
@@ -4589,74 +5021,90 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp)
     end
 end
 ]==]
-        local ok, fn = pcall(function()
+        
+        api = api or {}
+        api.buttonActions = api.buttonActions or {}
+        api.setFlyMode = setFlyMode
+        api.applyLanguage = applyLanguage
+        api.updDesyncDirInputs = updDesyncDirInputs
+        api.resetDesyncChar = resetDesyncChar
+        api.restoreDesyncMaterials = restoreDesyncMaterials
+        api.toggleNoclip = toggleNoclip
+        api.toggleTpWalk = toggleTpWalk
+        api.toggleAnchor = toggleAnchor
+        api.toggleAntiVoid = toggleAntiVoid
+        api.toggleAntiFling = toggleAntiFling
+        api.toggleTouchFling = toggleTouchFling
+        api.toggleFlyJump = toggleFlyJump
+        api.toggleESP = toggleESP
+        api.toggleMiniESP = toggleMiniESP
+        api.toggleStatus = toggleStatus
+        api.toggleNoMaxZoom = toggleNoMaxZoom
+        api.toggleNoMinZoom = toggleNoMinZoom
+        api.buttonActions = {}
+        api.buttonActions.smartFlyTrigBtn = function()
+            if isPC and st and st.smartFlyKey then
+                st.smartFlyOn = false
+                if st.smartFlyTrig then
+                    st.smartFlyTrig()
+                end
+            end
+        end
+        api.buttonActions.smartResetTrigBtn = function()
+            if isPC and st and st.smartResetKey then
+                st.smartResetOn = false
+                if st.smartResetTrig then
+                    st.smartResetTrig()
+                end
+            end
+        end
+        api.buttonActions.setFovBtn = function()
+            if ws and ws.CurrentCamera and st and type(st.fovValue) == "number" then
+                ws.CurrentCamera.FieldOfView = st.fovValue
+            end
+        end
+        api.buttonActions.setSpeedBtn = function()
+            local c = getChar()
+            local hum = c and c:FindFirstChildOfClass("Humanoid")
+            if hum and st and type(st.speedValue) == "number" then
+                hum.WalkSpeed = st.speedValue
+            end
+        end
+        api.buttonActions.setJumpBtn = function()
+            local c = getChar()
+            local hum = c and c:FindFirstChildOfClass("Humanoid")
+            if hum and st and type(st.jumpValue) == "number" then
+                if hum.UseJumpPower then
+                    hum.JumpPower = st.jumpValue
+                else
+                    hum.JumpHeight = st.jumpValue
+                end
+            end
+        end
+        api.buttonActions.setGravBtn = function()
+            if ws and st and type(st.gravValue) == "number" then
+                ws.Gravity = st.gravValue
+            end
+        end
+        api.buttonActions.setMaxZoomBtn = function()
+            if lp and st and type(st.maxZoomValue) == "number" then
+                lp.CameraMaxZoomDistance = st.maxZoomValue
+            end
+        end
+        api.buttonActions.setMinZoomBtn = function()
+            if lp and st and type(st.minZoomValue) == "number" then
+                lp.CameraMinZoomDistance = st.minZoomValue
+            end
+        end
+pcall(function()
             if typeof(loadstring) == "function" then
-                return loadstring(cfgSrc)()
+                local f = loadstring(cfgSrc)()
+                if type(f) == "function" then
+                    f(getgenv, refs, st, allButtons, gui, ws, lp, api)
+                end
             end
         end)
-        if ok and type(fn) == "function" then
-            pcall(function()
-                fn(getgenv, refs, st, allButtons, gui, ws, lp)
-            end)
-        end
     end
-
-
-    function C.D()
-        if destroyed then
-            return
-        end
-        destroyed = true
-        touchStopRequested = true
-        if hbConn and hbConn.Connected then
-            hbConn:Disconnect()
-        end
-        R:UnbindFromRenderStep("Leme_DesyncRevert")
-        for i = #conns, 1, -1 do
-            local c = conns[i]
-            conns[i] = nil
-            if c and c.Connected then
-                c:Disconnect()
-            end
-        end
-        clearNameEsp()
-        clearMiniEsp()
-        if st.statusGui then
-            st.statusGui:Destroy()
-            st.statusGui = nil
-            st.statusLabel = nil
-        end
-        removeHoverAlign()
-        restoreDesyncMaterials()
-        if st.desyncDummy then
-            st.desyncDummy:Destroy()
-            st.desyncDummy = nil
-            st.desyncDummyRoot = nil
-            st.desyncDummyMotorMap = {}
-            st.desyncSourceChar = nil
-        end
-        pcall(function()
-            gui:Destroy()
-        end)
-        if g.LemeGUIV2 == C then
-            g.LemeGUIV2 = nil
-        end
-    end
-
-    refs.unloadBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        C.D()
-    end)
-
-    refs.reloadBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        C.D()
-        task.defer(Start)
-    end)
 
 end
 
