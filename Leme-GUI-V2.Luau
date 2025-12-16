@@ -32,21 +32,14 @@ local function Start()
     end
 
     local uiParent
-    local pg = lp:FindFirstChildOfClass("PlayerGui") or lp:FindFirstChild("PlayerGui")
-    if not pg then
-        pg = lp:WaitForChild("PlayerGui")
-    end
-    uiParent = pg
 
-    if not uiParent then
-        local ok, res = pcall(function()
-            if typeof(gethui) == "function" then
-                return gethui()
-            end
-        end)
-        if ok and res then
-            uiParent = res
+    local ok, res = pcall(function()
+        if typeof(gethui) == "function" then
+            return gethui()
         end
+    end)
+    if ok and res then
+        uiParent = res
     end
 
     if not uiParent then
@@ -67,6 +60,14 @@ local function Start()
         if ok3 and res3 then
             uiParent = res3
         end
+    end
+
+    if not uiParent then
+        local pg = lp:FindFirstChildOfClass("PlayerGui") or lp:FindFirstChild("PlayerGui")
+        if not pg then
+            pg = lp:WaitForChild("PlayerGui")
+        end
+        uiParent = pg
     end
 
     if not uiParent then
@@ -2509,6 +2510,13 @@ local function Start()
     end
 
     local function updateChat()
+        local desired = st.chatOn
+        local sg = S(game, "StarterGui")
+        if sg then
+            pcall(function()
+                sg:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, desired)
+            end)
+        end
         local tcs = S(game, "TextChatService")
         if not tcs then
             return
@@ -2517,7 +2525,6 @@ local function Start()
         if not cfg then
             return
         end
-        local desired = st.chatOn
         if cfg.Enabled ~= desired then
             cfg.Enabled = desired
         end
