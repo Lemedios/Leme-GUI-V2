@@ -168,6 +168,11 @@ local function Start()
     local conns = {}
     local refs = {}
     local allButtons = {}
+    local pressed = getgenv().LemeGUIV2_Pressed
+    if type(pressed) ~= "table" then
+        pressed = {}
+        getgenv().LemeGUIV2_Pressed = pressed
+    end
     local allGroupLabels = {}
     local allInputs = {}
     local allDisplays = {}
@@ -375,6 +380,9 @@ local function Start()
     local function createButton(parent, textEn, textJp, order, key, isToggle)
         local b = Instance.new("TextButton")
         b.Name = key
+        pcall(function()
+            b:SetAttribute("CfgGroup", string.lower(group.Name or ""))
+        end)
         b.BackgroundColor3 = refs.main.BackgroundColor3
         b.BackgroundTransparency = refs.main.BackgroundTransparency
         b.BorderSizePixel = 0
@@ -394,6 +402,11 @@ local function Start()
         c.Parent = b
         refs[key] = b
         table.insert(allButtons, b)
+        if not (isToggle and true or false) then
+            b.Activated:Connect(function()
+                pressed[key] = true
+            end)
+        end
         return b
     end
 
@@ -409,6 +422,9 @@ local function Start()
 
         local tb = Instance.new("TextBox")
         tb.Name = key
+        pcall(function()
+            tb:SetAttribute("CfgGroup", string.lower(group.Name or ""))
+        end)
         tb.BackgroundColor3 = refs.main.BackgroundColor3
         tb.BackgroundTransparency = refs.main.BackgroundTransparency
         tb.BorderSizePixel = 0
@@ -604,7 +620,7 @@ local function Start()
 
     local desyncPosTb = createLabeledInput(refs.desyncGroup, "Desync Pos", "非同期座標", 3, "0 0 0", "desyncPosInput")
     refs.desyncPosCell = desyncPosTb.Parent
-    refs.desyncPosCell.Visible = false
+    refs.desyncPosCell.Visible = true
     createButton(refs.desyncGroup, "Desync", "非同期", 1, "desyncBtn", true)
     createButton(refs.desyncGroup, "Desync Pos", "非同期座標", 2, "desyncPosBtn", true)
 
@@ -623,6 +639,7 @@ local function Start()
     createButton(refs.scriptGroup, "Load ShiftLock", "シフトロックスクリプト", 4, "loadShiftLockBtn", false)
     createButton(refs.scriptGroup, "Unload", "スクリプトを削除", 5, "unloadBtn", false)
     createButton(refs.scriptGroup, "Reload", "リロード", 6, "reloadBtn", false)
+    createButton(refs.scriptGroup, "Copy Config", "設定コピー", 7, "copyConfigBtn", false)
     createButton(refs.scriptGroup, "Language", "言語", 8, "languageBtn", false)
 
     createButton(refs.teleportGroup, "TP to", "テレポート", 1, "tpToBtn", false)
@@ -697,7 +714,7 @@ local function Start()
         end)
     end
 
-    refs.toggle.MouseButton1Click:Connect(function()
+    refs.toggle.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -953,7 +970,7 @@ local function Start()
     local function updDesyncPosBtn()
         setToggleText(refs.desyncPosBtn, st.desyncPosOn)
         if refs.desyncPosCell then
-            refs.desyncPosCell.Visible = st.desyncPosOn
+            refs.desyncPosCell.Visible = true
         end
     end
 
@@ -2545,7 +2562,7 @@ local function Start()
         if #nums >= 3 then
             local x, y, z = nums[1], nums[2], nums[3]
             st.tpPos = Vector3.new(x, y, z)
-            tb.Text = pf .. string.format("%.2f %.2f %.2f", x, y, z)
+            tb.Text = pf .. formatInit(x) .. " " .. formatInit(y) .. " " .. formatInit(z)
         end
     end
 
@@ -2638,7 +2655,7 @@ local function Start()
         if #nums >= 3 then
             local x, y, z = nums[1], nums[2], nums[3]
             st.desyncPosTarget = Vector3.new(x, y, z)
-            tb.Text = pf .. string.format("%.2f %.2f %.2f", x, y, z)
+            tb.Text = pf .. formatInit(x) .. " " .. formatInit(y) .. " " .. formatInit(z)
         else
             st.desyncPosTarget = nil
         end
@@ -3152,21 +3169,21 @@ local function Start()
         end
     end))
 
-    refs.rejoinBtn.MouseButton1Click:Connect(function()
+    refs.rejoinBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         rejoin()
     end)
 
-    refs.killSelfBtn.MouseButton1Click:Connect(function()
+    refs.killSelfBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         killSelf()
     end)
 
-    refs.loopKillBtn.MouseButton1Click:Connect(function()
+    refs.loopKillBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3174,84 +3191,84 @@ local function Start()
         updLoopKillBtn()
     end)
 
-    refs.antiAfkBtn.MouseButton1Click:Connect(function()
+    refs.antiAfkBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         enableAntiAfk()
     end)
 
-    refs.noclipBtn.MouseButton1Click:Connect(function()
+    refs.noclipBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleNoclip()
     end)
 
-    refs.tpWalkBtn.MouseButton1Click:Connect(function()
+    refs.tpWalkBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleTpWalk()
     end)
 
-    refs.anchorBtn.MouseButton1Click:Connect(function()
+    refs.anchorBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleAnchor()
     end)
 
-    refs.antiVoidBtn.MouseButton1Click:Connect(function()
+    refs.antiVoidBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleAntiVoid()
     end)
 
-    refs.antiFlingBtn.MouseButton1Click:Connect(function()
+    refs.antiFlingBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleAntiFling()
     end)
 
-    refs.touchFlingBtn.MouseButton1Click:Connect(function()
+    refs.touchFlingBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleTouchFling()
     end)
 
-    refs.flyJumpBtn.MouseButton1Click:Connect(function()
+    refs.flyJumpBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleFlyJump()
     end)
 
-    refs.flyBtn.MouseButton1Click:Connect(function()
+    refs.flyBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         setFlyMode("fly")
     end)
 
-    refs.hoverBtn.MouseButton1Click:Connect(function()
+    refs.hoverBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         setFlyMode("hover")
     end)
 
-    refs.velBtn.MouseButton1Click:Connect(function()
+    refs.velBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         setFlyMode("vel")
     end)
 
-    refs.sitFlyBtn.MouseButton1Click:Connect(function()
+    refs.sitFlyBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3267,28 +3284,28 @@ local function Start()
     end)
 
 
-    refs.espBtn.MouseButton1Click:Connect(function()
+    refs.espBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleESP()
     end)
 
-    refs.miniEspBtn.MouseButton1Click:Connect(function()
+    refs.miniEspBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleMiniESP()
     end)
 
-    refs.statusBtn.MouseButton1Click:Connect(function()
+    refs.statusBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleStatus()
     end)
 
-    refs.chatBtn.MouseButton1Click:Connect(function()
+    refs.chatBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3296,7 +3313,7 @@ local function Start()
         updChatBtn()
     end)
 
-    refs.instantPromptBtn.MouseButton1Click:Connect(function()
+    refs.instantPromptBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3311,7 +3328,7 @@ local function Start()
         workspace.DescendantAdded:Connect(apply)
     end)
 
-    refs.setFovBtn.MouseButton1Click:Connect(function()
+    refs.setFovBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3327,7 +3344,7 @@ local function Start()
         end
     end)
 
-    refs.loopFovBtn.MouseButton1Click:Connect(function()
+    refs.loopFovBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3347,7 +3364,7 @@ local function Start()
         refs.fovInput.Text = pf .. tostring(st.fovValue)
     end)
 
-    refs.setSpeedBtn.MouseButton1Click:Connect(function()
+    refs.setSpeedBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3364,7 +3381,7 @@ local function Start()
         end
     end)
 
-    refs.loopSpeedBtn.MouseButton1Click:Connect(function()
+    refs.loopSpeedBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3384,7 +3401,7 @@ local function Start()
         refs.speedInput.Text = pf .. tostring(st.speedValue)
     end)
 
-    refs.setJumpBtn.MouseButton1Click:Connect(function()
+    refs.setJumpBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3406,7 +3423,7 @@ local function Start()
         end
     end)
 
-    refs.loopJumpBtn.MouseButton1Click:Connect(function()
+    refs.loopJumpBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3426,7 +3443,7 @@ local function Start()
         refs.jumpInput.Text = pf .. tostring(st.jumpValue)
     end)
 
-    refs.setGravBtn.MouseButton1Click:Connect(function()
+    refs.setGravBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3439,7 +3456,7 @@ local function Start()
         ws.Gravity = st.gravValue
     end)
 
-    refs.loopGravBtn.MouseButton1Click:Connect(function()
+    refs.loopGravBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3459,7 +3476,7 @@ local function Start()
         refs.gravInput.Text = pf .. tostring(st.gravValue)
     end)
 
-    refs.setMaxZoomBtn.MouseButton1Click:Connect(function()
+    refs.setMaxZoomBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3472,7 +3489,7 @@ local function Start()
         lp.CameraMaxZoomDistance = st.maxZoomValue
     end)
 
-    refs.loopMaxZoomBtn.MouseButton1Click:Connect(function()
+    refs.loopMaxZoomBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3492,7 +3509,7 @@ local function Start()
         refs.maxZoomInput.Text = pf .. tostring(st.maxZoomValue)
     end)
 
-    refs.setMinZoomBtn.MouseButton1Click:Connect(function()
+    refs.setMinZoomBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3505,7 +3522,7 @@ local function Start()
         lp.CameraMinZoomDistance = st.minZoomValue
     end)
 
-    refs.loopMinZoomBtn.MouseButton1Click:Connect(function()
+    refs.loopMinZoomBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3525,21 +3542,21 @@ local function Start()
         refs.minZoomInput.Text = pf .. tostring(st.minZoomValue)
     end)
 
-    refs.noMaxZoomBtn.MouseButton1Click:Connect(function()
+    refs.noMaxZoomBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleNoMaxZoom()
     end)
 
-    refs.noMinZoomBtn.MouseButton1Click:Connect(function()
+    refs.noMinZoomBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         toggleNoMinZoom()
     end)
 
-    refs.noFogBtn.MouseButton1Click:Connect(function()
+    refs.noFogBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3551,7 +3568,7 @@ local function Start()
         updNoFogBtn()
     end)
 
-    refs.setFogBtn.MouseButton1Click:Connect(function()
+    refs.setFogBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3563,7 +3580,7 @@ local function Start()
         L.FogEnd = st.fogEnd
     end)
 
-    refs.loopFogBtn.MouseButton1Click:Connect(function()
+    refs.loopFogBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3596,14 +3613,14 @@ local function Start()
         parseFogEnd()
     end)
 
-    refs.fbBtn.MouseButton1Click:Connect(function()
+    refs.fbBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         applyFullBright()
     end)
 
-    refs.loopFbBtn.MouseButton1Click:Connect(function()
+    refs.loopFbBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3635,7 +3652,7 @@ local function Start()
         refs.tpWalkSpeedInput.Text = pf .. tostring(st.tpSpeed)
     end)
 
-    refs.smartFlyBtn.MouseButton1Click:Connect(function()
+    refs.smartFlyBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3646,7 +3663,7 @@ local function Start()
         updSmartFlyBtn()
     end)
 
-    refs.smartFlyTrigBtn.MouseButton1Click:Connect(function()
+    refs.smartFlyTrigBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3660,7 +3677,7 @@ local function Start()
             or ("Trigger [" .. kName .. "] ...")
     end)
 
-    refs.smartResetBtn.MouseButton1Click:Connect(function()
+    refs.smartResetBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3671,7 +3688,7 @@ local function Start()
         updSmartResetBtn()
     end)
 
-    refs.smartResetTrigBtn.MouseButton1Click:Connect(function()
+    refs.smartResetTrigBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3685,14 +3702,14 @@ local function Start()
             or ("Trigger [" .. kName .. "] ...")
     end)
 
-    refs.resetCamBtn.MouseButton1Click:Connect(function()
+    refs.resetCamBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         applyResetCamera()
     end)
 
-    refs.loopResetCamBtn.MouseButton1Click:Connect(function()
+    refs.loopResetCamBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3700,28 +3717,28 @@ local function Start()
         updLoopResetCamBtn()
     end)
 
-    refs.loadIYBtn.MouseButton1Click:Connect(function()
+    refs.loadIYBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         runUrl("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source")
     end)
 
-    refs.loadRSpyBtn.MouseButton1Click:Connect(function()
+    refs.loadRSpyBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         runUrl("https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua")
     end)
 
-    refs.loadDexBtn.MouseButton1Click:Connect(function()
+    refs.loadDexBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         runUrl("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua")
     end)
 
-    refs.loadShiftLockBtn.MouseButton1Click:Connect(function()
+    refs.loadShiftLockBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3735,7 +3752,7 @@ local function Start()
         parseTpPos()
     end)
 
-    refs.tpToBtn.MouseButton1Click:Connect(function()
+    refs.tpToBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3751,7 +3768,7 @@ local function Start()
         end
     end)
 
-    refs.setPosBtn.MouseButton1Click:Connect(function()
+    refs.setPosBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3763,7 +3780,7 @@ local function Start()
         st.tpPos = Vector3.new(x, y, z)
         local tb = refs.tpPosInput
         local pf = tb:GetAttribute("Prefix") or ""
-        tb.Text = pf .. string.format("%.2f %.2f %.2f", x, y, z)
+        tb.Text = pf .. formatInit(x) .. " " .. formatInit(y) .. " " .. formatInit(z)
     end)
 
     refs.flingTargetInput.FocusLost:Connect(function()
@@ -3773,7 +3790,7 @@ local function Start()
         updateFlingTargetFromInput()
     end)
 
-    refs.flingBtn.MouseButton1Click:Connect(function()
+    refs.flingBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3787,7 +3804,7 @@ local function Start()
         parseDesyncPosInput()
     end)
 
-    refs.desyncBtn.MouseButton1Click:Connect(function()
+    refs.desyncBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3818,7 +3835,7 @@ local function Start()
         updDesyncPosBtn()
     end)
 
-    refs.desyncPosBtn.MouseButton1Click:Connect(function()
+    refs.desyncPosBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3834,7 +3851,7 @@ local function Start()
                     st.desyncPosTarget = Vector3.new(p2.X, p2.Y, p2.Z)
                     local tb = refs.desyncPosInput
                     local pf = tb:GetAttribute("Prefix") or ""
-                    tb.Text = pf .. string.format("%.2f %.2f %.2f", p2.X, p2.Y, p2.Z)
+                    tb.Text = pf .. formatInit(p2.X) .. " " .. formatInit(p2.Y) .. " " .. formatInit(p2.Z)
                 end
             end
         end
@@ -3860,7 +3877,7 @@ local function Start()
         updDesyncPosBtn()
     end)
 
-    refs.desyncDirBtn.MouseButton1Click:Connect(function()
+    refs.desyncDirBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -3949,7 +3966,7 @@ local function Start()
         cc.CornerRadius = UDim.new(0, 6)
         cc.Parent = close
 
-        close.MouseButton1Click:Connect(function()
+        close.Activated:Connect(function()
             if refs.languageOverlay then
                 refs.languageOverlay:Destroy()
                 refs.languageOverlay = nil
@@ -4013,11 +4030,11 @@ local function Start()
             refreshSel()
         end
 
-        enBtn.MouseButton1Click:Connect(function()
+        enBtn.Activated:Connect(function()
             selectLang("en")
         end)
 
-        jpBtn.MouseButton1Click:Connect(function()
+        jpBtn.Activated:Connect(function()
             selectLang("jp")
         end)
     end
@@ -4081,7 +4098,7 @@ local function Start()
         cc.CornerRadius = UDim.new(0, 6)
         cc.Parent = close
 
-        close.MouseButton1Click:Connect(function()
+        close.Activated:Connect(function()
             if refs.desyncDirOverlay then
                 refs.desyncDirOverlay:Destroy()
                 refs.desyncDirOverlay = nil
@@ -4136,19 +4153,19 @@ local function Start()
 
         refresh()
 
-        rollBtn.MouseButton1Click:Connect(function()
+        rollBtn.Activated:Connect(function()
             st.desyncDirRollOn = not st.desyncDirRollOn
             updDesyncDirInputs()
             refresh()
         end)
 
-        pitchBtn.MouseButton1Click:Connect(function()
+        pitchBtn.Activated:Connect(function()
             st.desyncDirPitchOn = not st.desyncDirPitchOn
             updDesyncDirInputs()
             refresh()
         end)
 
-        yawBtn.MouseButton1Click:Connect(function()
+        yawBtn.Activated:Connect(function()
             st.desyncDirYawOn = not st.desyncDirYawOn
             updDesyncDirInputs()
             refresh()
@@ -4156,14 +4173,14 @@ local function Start()
     end
 
 
-    refs.languageBtn.MouseButton1Click:Connect(function()
+    refs.languageBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         openLanguageDialog()
     end)
 
-    refs.desyncDirDirectionBtn.MouseButton1Click:Connect(function()
+    refs.desyncDirDirectionBtn.Activated:Connect(function()
         if destroyed then
             return
         end
@@ -4347,6 +4364,243 @@ local function Start()
     updLanguageBtn()
     applyLanguage()
 
+    do
+        local cfgSrc = [==[
+return function(getgenv, refs, st, allButtons, gui, ws, lp)
+    local function ensurePressed()
+        local p = getgenv().LemeGUIV2_Pressed
+        if type(p) ~= "table" then
+            p = {}
+            getgenv().LemeGUIV2_Pressed = p
+        end
+        return p
+    end
+
+    local function isOn(btn)
+        local t = btn and btn.Text or ""
+        if string.find(t, "%[ON%]") then
+            return true
+        end
+        if string.find(t, "%[オン%]") then
+            return true
+        end
+        return false
+    end
+
+    local function esc(v)
+        v = tostring(v or "")
+        v = string.gsub(v, "\\", "\\\\")
+        v = string.gsub(v, "\n", "\\n")
+        v = string.gsub(v, "=", "\\=")
+        return v
+    end
+
+    local function unesc(v)
+        v = tostring(v or "")
+        v = string.gsub(v, "\\n", "\n")
+        v = string.gsub(v, "\\=", "=")
+        v = string.gsub(v, "\\\\", "\\")
+        return v
+    end
+
+    local function groupOf(inst)
+        local g = "ui"
+        pcall(function()
+            local cg = inst:GetAttribute("CfgGroup")
+            if type(cg) == "string" and cg ~= "" then
+                g = cg
+            end
+        end)
+        return g
+    end
+
+    local function findRef(key)
+        local v = refs[key]
+        if v then
+            return v
+        end
+        local k2 = key .. "Btn"
+        v = refs[k2]
+        if v then
+            return v
+        end
+        local k3 = key .. "Input"
+        v = refs[k3]
+        if v then
+            return v
+        end
+        return nil
+    end
+
+    local function buildConfigText()
+        local out = {}
+        table.insert(out, 'getgenv().LemeGUIV2_Config = [[')
+        local pressed = ensurePressed()
+        for _, b in ipairs(allButtons) do
+            local key = b.Name
+            local g = groupOf(b)
+            if b:GetAttribute("IsToggle") then
+                table.insert(out, g .. ',togglebutton,' .. key .. '=' .. (isOn(b) and "true" or "false"))
+            else
+                table.insert(out, g .. ',button,' .. key .. '=' .. ((pressed[key] == true) and "true" or "false"))
+            end
+        end
+        for k, v in pairs(refs) do
+            if typeof(v) == "Instance" and v:IsA("TextBox") then
+                local g2 = groupOf(v)
+                table.insert(out, g2 .. ',input,' .. k .. '=' .. esc(v.Text))
+            end
+        end
+        table.insert(out, ']]')
+        table.insert(out, 'if getgenv().LemeGUIV2_ApplyConfig then')
+        table.insert(out, '    getgenv().LemeGUIV2_ApplyConfig(getgenv().LemeGUIV2_Config)')
+        table.insert(out, 'end')
+        return table.concat(out, "\n")
+    end
+
+    local function applyConfigText(cfg)
+        cfg = tostring(cfg or "")
+        local pressed = ensurePressed()
+        for line in string.gmatch(cfg, "([^\n]+)") do
+            local _, typ, rest = string.match(line, "^([^,]+),([^,]+),(.+)$")
+            if typ and rest then
+                local key, val = string.match(rest, "^([^=]+)=(.*)$")
+                if key and val then
+                    if typ == "input" then
+                        local tb = findRef(key)
+                        if tb and typeof(tb) == "Instance" and tb:IsA("TextBox") then
+                            tb.Text = unesc(val)
+                        end
+                    elseif typ == "togglebutton" then
+                        local btn = findRef(key)
+                        if btn and typeof(btn) == "Instance" and btn:IsA("GuiButton") then
+                            local want = (val == "true")
+                            local cur = isOn(btn)
+                            if want ~= cur then
+                                pcall(function()
+                                    btn:Activate()
+                                end)
+                            end
+                        end
+                    elseif typ == "button" then
+                        local btn2 = findRef(key)
+                        if btn2 and typeof(btn2) == "Instance" and btn2:IsA("GuiButton") then
+                            if val == "true" and not (pressed[key] == true) then
+                                pressed[key] = true
+                                pcall(function()
+                                    btn2:Activate()
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    getgenv().LemeGUIV2_ApplyConfig = function(cfg)
+        applyConfigText(cfg)
+    end
+
+    getgenv().LemeGUIV2_BuildConfig = function()
+        return buildConfigText()
+    end
+
+    if refs.copyConfigBtn then
+        refs.copyConfigBtn.Activated:Connect(function()
+            local txt = buildConfigText()
+            local ok, did = pcall(function()
+                if typeof(setclipboard) == "function" then
+                    setclipboard(txt)
+                    return true
+                end
+            end)
+            if ok and did then
+                return
+            end
+
+            local overlay = Instance.new("Frame")
+            overlay.Name = "CopyConfigOverlay"
+            overlay.Size = UDim2.new(1, 0, 1, 0)
+            overlay.Position = UDim2.new(0, 0, 0, 0)
+            overlay.BackgroundColor3 = Color3.new(0, 0, 0)
+            overlay.BackgroundTransparency = 0.4
+            overlay.BorderSizePixel = 0
+            overlay.ZIndex = 1200
+            overlay.Parent = gui
+
+            local inner = Instance.new("Frame")
+            inner.Size = UDim2.new(0, 420, 0, 260)
+            inner.AnchorPoint = Vector2.new(0.5, 0.5)
+            inner.Position = UDim2.new(0.5, 0, 0.5, 0)
+            inner.BackgroundColor3 = refs.main.BackgroundColor3
+            inner.BackgroundTransparency = refs.main.BackgroundTransparency
+            inner.BorderSizePixel = 0
+            inner.ZIndex = 1201
+            inner.Parent = overlay
+
+            local ic = Instance.new("UICorner")
+            ic.CornerRadius = UDim.new(0, 10)
+            ic.Parent = inner
+
+            local close = Instance.new("TextButton")
+            close.Size = UDim2.new(0, 22, 0, 22)
+            close.Position = UDim2.new(1, -28, 0, 10)
+            close.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            close.BackgroundTransparency = 0.1
+            close.BorderSizePixel = 0
+            close.Font = Enum.Font.Code
+            close.TextSize = 18
+            close.TextColor3 = Color3.new(1, 1, 1)
+            close.AutoButtonColor = false
+            close.Text = "×"
+            close.ZIndex = 1202
+            close.Parent = inner
+            local cc = Instance.new("UICorner")
+            cc.CornerRadius = UDim.new(0, 6)
+            cc.Parent = close
+
+            close.Activated:Connect(function()
+                overlay:Destroy()
+            end)
+
+            local tb = Instance.new("TextBox")
+            tb.Size = UDim2.new(1, -20, 1, -20)
+            tb.Position = UDim2.new(0, 10, 0, 10)
+            tb.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+            tb.BackgroundTransparency = 0.1
+            tb.BorderSizePixel = 0
+            tb.Font = Enum.Font.Code
+            tb.TextColor3 = Color3.new(1, 1, 1)
+            tb.TextSize = 14
+            tb.TextXAlignment = Enum.TextXAlignment.Left
+            tb.TextYAlignment = Enum.TextYAlignment.Top
+            tb.ClearTextOnFocus = false
+            tb.MultiLine = true
+            tb.TextWrapped = false
+            tb.Text = txt
+            tb.ZIndex = 1202
+            tb.Parent = inner
+        end)
+    end
+
+    if getgenv().LemeGUIV2_Config then
+        applyConfigText(getgenv().LemeGUIV2_Config)
+    end
+end
+]==]
+        local ok, fn = pcall(function()
+            if typeof(loadstring) == "function" then
+                return loadstring(cfgSrc)()
+            end
+        end)
+        if ok and type(fn) == "function" then
+            pcall(function()
+                fn(getgenv, refs, st, allButtons, gui, ws, lp)
+            end)
+        end
+    end
+
 
     function C.D()
         if destroyed then
@@ -4389,14 +4643,14 @@ local function Start()
         end
     end
 
-    refs.unloadBtn.MouseButton1Click:Connect(function()
+    refs.unloadBtn.Activated:Connect(function()
         if destroyed then
             return
         end
         C.D()
     end)
 
-    refs.reloadBtn.MouseButton1Click:Connect(function()
+    refs.reloadBtn.Activated:Connect(function()
         if destroyed then
             return
         end
