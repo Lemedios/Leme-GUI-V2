@@ -1368,7 +1368,7 @@ local function Start()
                 savedRotVel = hrp2.AssemblyAngularVelocity,
                 freezeCF = hrp2.CFrame,
             }
-            data.hb = addConn(R.RenderStepped:Connect(function()
+            data.hb = addConn(R.Heartbeat:Connect(function()
                 if destroyed then
                     return
                 end
