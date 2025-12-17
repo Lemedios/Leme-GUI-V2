@@ -4922,8 +4922,11 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
         for key, want in pairs(wantButtons) do
             if want and (not exclude[key]) then
                 pressed[key] = true
-                if api and type(api.buttonActions) == "table" and type(api.buttonActions[key]) == "function" then
-                    api.buttonActions[key]()
+                local btn = findRef(key)
+                if btn and typeof(btn) == "Instance" and btn:IsA("GuiButton") then
+                    pcall(function()
+                        btn:Activate()
+                    end)
                 end
             end
         end
