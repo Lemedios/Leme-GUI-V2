@@ -2385,7 +2385,7 @@ local function Start()
         end)
     end
 
-        refs.applyBodyTransparency = function(val)
+            refs.applyBodyTransparency = function(val)
         val = tonumber(val) or 0
         if val < 0 then
             val = 0
@@ -2396,21 +2396,77 @@ local function Start()
         if not c then
             return
         end
+
+        local allowed = {
+            Head = true,
+            Torso = true,
+            UpperTorso = true,
+            LowerTorso = true,
+
+            ["Right Arm"] = true,
+            ["Left Arm"] = true,
+            ["Right Leg"] = true,
+            ["Left Leg"] = true,
+
+            RightUpperArm = true,
+            RightLowerArm = true,
+            RightHand = true,
+            LeftUpperArm = true,
+            LeftLowerArm = true,
+            LeftHand = true,
+
+            RightUpperLeg = true,
+            RightLowerLeg = true,
+            RightFoot = true,
+            LeftUpperLeg = true,
+            LeftLowerLeg = true,
+            LeftFoot = true
+        }
+
+        local function isAccessoryPart(p)
+            local cur = p
+            while cur and cur ~= c do
+                if cur:IsA("Accessory") then
+                    return true
+                end
+                cur = cur.Parent
+            end
+            return false
+        end
+
+        local function isAllowedPart(p)
+            if not p or not p:IsA("BasePart") then
+                return false
+            end
+            if p.Name == "HumanoidRootPart" then
+                return false
+            end
+            if allowed[p.Name] then
+                return true
+            end
+            if isAccessoryPart(p) then
+                return true
+            end
+            return false
+        end
+
         for _, d in ipairs(c:GetDescendants()) do
             if d:IsA("BasePart") then
-                if d.Name == "HumanoidRootPart" then
-                    continue
+                if isAllowedPart(d) then
+                    pcall(function()
+                        d.LocalTransparencyModifier = val
+                    end)
+                    pcall(function()
+                        d.Transparency = val
+                    end)
                 end
-                pcall(function()
-                    d.LocalTransparencyModifier = val
-                end)
-                pcall(function()
-                    d.Transparency = val
-                end)
             elseif d:IsA("Decal") or d:IsA("Texture") then
-                pcall(function()
-                    d.Transparency = val
-                end)
+                local p = d.Parent
+                if p and p:IsA("BasePart") and isAllowedPart(p) then
+                    pcall(function()
+                        d.Transparency = val
+                    end)
+                end
             end
         end
     end
