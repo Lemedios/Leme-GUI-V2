@@ -570,6 +570,7 @@ local function Start()
     refs.desyncDirGroup = createGroup("Desync Direction", "向きの同期ズレ", 16, "DesyncDirection")
     refs.teleportGroup = createGroup("Teleport", "テレポート", 17, "Teleport")
     refs.resetCamGroup = createGroup("Reset Camera", "カメラ初期化", 18, "ResetCamera")
+    refs.bodyTransGroup = createGroup("Body Transparency", "体の透明度", 19, "BodyTransparency")
     refs.scriptGroup = createGroup("Script", "スクリプト", 99, "Script")
 
     createButton(refs.flyGroup, "Fly", "飛行", 1, "flyBtn", true)
@@ -608,40 +609,45 @@ local function Start()
     createButton(refs.otherGroup, "Instant Prompt", "即時プロンプト", 6, "instantPromptBtn", false)
 
     createButton(refs.fovGroup, "Set FOV", "視野を設定", 1, "setFovBtn", false)
-    createButton(refs.fovGroup, "Loop FOV", "視野を固定", 2, "loopFovBtn", true)
-    createLabeledInput(refs.fovGroup, "FOV", "視野", 3, initFovStr, "fovInput")
+    createButton(refs.fovGroup, "Loop Set", "ループ設定", 2, "loopFovBtn", true)
+    createLabeledInput(refs.fovGroup, "Value", "値", 3, initFovStr, "fovInput")
 
     createButton(refs.speedGroup, "Set Speed", "速度を設定", 1, "setSpeedBtn", false)
-    createButton(refs.speedGroup, "Loop Speed", "速度を固定", 2, "loopSpeedBtn", true)
-    createLabeledInput(refs.speedGroup, "Speed", "速度", 3, initWalkStr, "speedInput")
+    createButton(refs.speedGroup, "Loop Set", "ループ設定", 2, "loopSpeedBtn", true)
+    createLabeledInput(refs.speedGroup, "Value", "値", 3, initWalkStr, "speedInput")
 
     createButton(refs.jumpGroup, "Set Jump", "ジャンプを設定", 1, "setJumpBtn", false)
-    createButton(refs.jumpGroup, "Loop Jump", "ジャンプ固定", 2, "loopJumpBtn", true)
-    createLabeledInput(refs.jumpGroup, "Jump", "ジャンプ力", 3, initJumpStr, "jumpInput")
+    createButton(refs.jumpGroup, "Loop Set", "ループ設定", 2, "loopJumpBtn", true)
+    createLabeledInput(refs.jumpGroup, "Value", "値", 3, initJumpStr, "jumpInput")
 
-    createButton(refs.gravGroup, "Set Grav", "重力を設定", 1, "setGravBtn", false)
-    createButton(refs.gravGroup, "Loop Grav", "重力を固定", 2, "loopGravBtn", true)
-    createLabeledInput(refs.gravGroup, "Grav", "重力", 3, initGravStr, "gravInput")
+    createButton(refs.gravGroup, "Set Gravity", "重力を設定", 1, "setGravBtn", false)
+    createButton(refs.gravGroup, "Loop Set", "ループ設定", 2, "loopGravBtn", true)
+    createLabeledInput(refs.gravGroup, "Value", "値", 3, initGravStr, "gravInput")
 
     createButton(refs.maxZoomGroup, "Set MaxZoom", "最大ズームを設定", 1, "setMaxZoomBtn", false)
-    createButton(refs.maxZoomGroup, "Loop MaxZoom", "最大ズームを固定", 2, "loopMaxZoomBtn", true)
-    createLabeledInput(refs.maxZoomGroup, "MaxZoom", "最大ズーム", 3, initMaxZoomStr, "maxZoomInput")
+    createButton(refs.maxZoomGroup, "Loop Set", "ループ設定", 2, "loopMaxZoomBtn", true)
+    createLabeledInput(refs.maxZoomGroup, "Value", "値", 3, initMaxZoomStr, "maxZoomInput")
     createButton(refs.maxZoomGroup, "No MaxZoom", "最大ズームを無効", 4, "noMaxZoomBtn", true)
 
     createButton(refs.minZoomGroup, "Set MinZoom", "最小ズームを設定", 1, "setMinZoomBtn", false)
-    createButton(refs.minZoomGroup, "Loop MinZoom", "最小ズームを固定", 2, "loopMinZoomBtn", true)
-    createLabeledInput(refs.minZoomGroup, "MinZoom", "最小ズーム", 3, initMinZoomStr, "minZoomInput")
+    createButton(refs.minZoomGroup, "Loop Set", "ループ設定", 2, "loopMinZoomBtn", true)
+    createLabeledInput(refs.minZoomGroup, "Value", "値", 3, initMinZoomStr, "minZoomInput")
+
+    createButton(refs.bodyTransGroup, "Set Transparency", "透明度を設定", 1, "setBodyTransBtn", false)
+    createButton(refs.bodyTransGroup, "Loop Set", "ループ設定", 2, "loopBodyTransBtn", true)
+    createLabeledInput(refs.bodyTransGroup, "Value", "値", 3, "0", "bodyTransInput")
+
     createButton(refs.minZoomGroup, "No MinZoom", "最小ズームを無効", 4, "noMinZoomBtn", true)
 
     createButton(refs.fogGroup, "No Fog", "霧なし", 1, "noFogBtn", true)
     createButton(refs.fogGroup, "Set Fog", "霧を設定", 2, "setFogBtn", false)
-    createButton(refs.fogGroup, "Loop Fog", "霧を固定", 3, "loopFogBtn", true)
+    createButton(refs.fogGroup, "Loop Set", "ループ設定", 3, "loopFogBtn", true)
     createLabeledInput(refs.fogGroup, "FogColor", "霧の色", 4, defaultFogColorStr, "fogColorInput")
     createLabeledInput(refs.fogGroup, "FogStart", "霧の開始距離", 5, initFogStartStr, "fogStartInput")
     createLabeledInput(refs.fogGroup, "FogEnd", "霧の終了距離", 6, initFogEndStr, "fogEndInput")
 
     createButton(refs.fbGroup, "Full Bright", "フルブライト", 1, "fbBtn", false)
-    createButton(refs.fbGroup, "Loop FB", "ループ", 2, "loopFbBtn", true)
+    createButton(refs.fbGroup, "Loop Set", "ループ設定", 2, "loopFbBtn", true)
 
     local desyncPosTb = createLabeledInput(refs.desyncGroup, "Desync Pos", "非同期座標", 3, "0 0 0", "desyncPosInput")
     refs.desyncPosCell = desyncPosTb.Parent
@@ -757,6 +763,8 @@ local function Start()
     end
 
     local st = {
+        bodyTransValue = 0,
+        bodyTransLoopOn = false,
         antiAfkOn = false,
         noclipOn = false,
         noclipSaved = {},
@@ -956,6 +964,9 @@ local function Start()
     local function updLoopMinZoomBtn()
         setToggleText(refs.loopMinZoomBtn, st.minZoomLoop)
     end
+    refs.updLoopBodyTransBtn = function()
+        setToggleText(refs.loopBodyTransBtn, st.bodyTransLoopOn)
+    end
 
     local function updLoopFogBtn()
         setToggleText(refs.loopFogBtn, st.fogLoop)
@@ -1122,6 +1133,7 @@ local function Start()
         updLoopJumpBtn()
         updLoopMaxZoomBtn()
         updLoopMinZoomBtn()
+        refs.updLoopBodyTransBtn()
         updNoFogBtn()
         updLoopFogBtn()
         updLoopFbBtn()
@@ -2373,6 +2385,36 @@ local function Start()
         end)
     end
 
+        refs.applyBodyTransparency = function(val)
+        val = tonumber(val) or 0
+        if val < 0 then
+            val = 0
+        elseif val > 1 then
+            val = 1
+        end
+        local c = getChar()
+        if not c then
+            return
+        end
+        for _, d in ipairs(c:GetDescendants()) do
+            if d:IsA("BasePart") then
+                if d.Name == "HumanoidRootPart" then
+                    continue
+                end
+                pcall(function()
+                    d.LocalTransparencyModifier = val
+                end)
+                pcall(function()
+                    d.Transparency = val
+                end)
+            elseif d:IsA("Decal") or d:IsA("Texture") then
+                pcall(function()
+                    d.Transparency = val
+                end)
+            end
+        end
+    end
+
     local function applyLoops()
         local cam2 = ws.CurrentCamera
         if st.fovLoop and cam2 then
@@ -2425,7 +2467,10 @@ local function Start()
                 end
             end
         end
-        if st.fullBrightLoopOn then
+                if st.bodyTransLoopOn then
+            refs.applyBodyTransparency(st.bodyTransValue)
+        end
+if st.fullBrightLoopOn then
             applyFullBright()
         end
     end
@@ -3541,6 +3586,33 @@ local function Start()
         refs.gravInput.Text = pf .. tostring(st.gravValue)
     end)
 
+    refs.setBodyTransBtn.Activated:Connect(function()
+        if destroyed then
+            return
+        end
+        refs.applyBodyTransparency(st.bodyTransValue)
+    end)
+
+    refs.loopBodyTransBtn.Activated:Connect(function()
+        if destroyed then
+            return
+        end
+        st.bodyTransLoopOn = not st.bodyTransLoopOn
+        refs.updLoopBodyTransBtn()
+    end)
+
+    refs.bodyTransInput.FocusLost:Connect(function()
+        if destroyed then
+            return
+        end
+        local n = readNumber(refs.bodyTransInput, st.bodyTransValue)
+        if n then
+            st.bodyTransValue = n
+        end
+        local pf = refs.bodyTransInput:GetAttribute("Prefix") or ""
+        refs.bodyTransInput.Text = pf .. tostring(st.bodyTransValue)
+    end)
+
     api.buttonActions["setMaxZoomBtn"] = function()
         if destroyed then
             return
@@ -4613,6 +4685,7 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
     end
 
     local inputToSt = {
+        bodyTransInput = "bodyTransValue",
         desyncDirRollInput = "desyncDirRollDeg",
         desyncDirPitchInput = "desyncDirPitchDeg",
         desyncDirYawInput = "desyncDirYawDeg",
