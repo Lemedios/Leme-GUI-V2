@@ -274,6 +274,30 @@ local function Start()
     gui.ResetOnSpawn = false
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
     gui.Parent = uiParent
+    refs.loadingBlock = Instance.new("Frame")
+    refs.loadingBlock.Name = "LoadingBlock"
+    refs.loadingBlock.Size = UDim2.new(1, 0, 1, 0)
+    refs.loadingBlock.Position = UDim2.new(0, 0, 0, 0)
+    refs.loadingBlock.BackgroundColor3 = Color3.new(0, 0, 0)
+    refs.loadingBlock.BackgroundTransparency = 0.35
+    refs.loadingBlock.BorderSizePixel = 0
+    refs.loadingBlock.ZIndex = 2000
+    refs.loadingBlock.Active = false
+    refs.loadingBlock.Parent = gui
+
+    refs.loadingLabel = Instance.new("TextLabel")
+    refs.loadingLabel.Name = "LoadingLabel"
+    refs.loadingLabel.Size = UDim2.new(1, -20, 0, 30)
+    refs.loadingLabel.Position = UDim2.new(0, 10, 0.5, -15)
+    refs.loadingLabel.BackgroundTransparency = 1
+    refs.loadingLabel.BorderSizePixel = 0
+    refs.loadingLabel.Font = Enum.Font.Code
+    refs.loadingLabel.TextColor3 = Color3.new(1, 1, 1)
+    refs.loadingLabel.TextSize = 16
+    refs.loadingLabel.Text = "Loading..."
+    refs.loadingLabel.Active = false
+    refs.loadingLabel.ZIndex = 2001
+    refs.loadingLabel.Parent = refs.loadingBlock
 
 
 
@@ -658,6 +682,9 @@ local function Start()
     refs.toggle.AutoButtonColor = false
     refs.toggle.ZIndex = 20
     refs.toggle.Parent = gui
+
+    refs.main.Visible = false
+    refs.toggle.Visible = false
 
     local toggleCorner = Instance.new("UICorner")
     toggleCorner.CornerRadius = UDim.new(1, 0)
@@ -4611,7 +4638,6 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
                 if b:GetAttribute("IsToggle") then
                     table.insert(out, g .. ",togglebutton," .. key .. "=" .. (isOn(b) and "true" or "false"))
                 else
-                    table.insert(out, g .. ",button," .. key .. "=" .. ((pressed[key] == true) and "true" or "false"))
                 end
             end
         end
@@ -4793,7 +4819,6 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
         local pressed = ensurePressed()
 
         local wantToggles = {}
-        local wantButtons = {}
         local wantStateToggles = {}
         local wantLanguage = nil
         local wantKeys = {}
@@ -4818,8 +4843,6 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
                         end
                     elseif typ == "togglebutton" then
                         wantToggles[key] = (val == "true")
-                    elseif typ == "button" then
-                        wantButtons[key] = (val == "true")
                     elseif typ == "value" then
                         if key == "language" then
                             wantLanguage = unesc(val)
@@ -4918,16 +4941,6 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
                 end
             end
         end
-
-        for key, want in pairs(wantButtons) do
-            if want and (not exclude[key]) then
-                pressed[key] = true
-                local btn = findRef(key)
-                if btn and typeof(btn) == "Instance" and btn:IsA("GuiButton") then
-                    pcall(function()
-                        btn:Activate()
-                    end)
-                end
             end
         end
     end
@@ -5107,6 +5120,20 @@ pcall(function()
                 end
             end
         end)
+    end
+
+    if refs.main then
+        refs.main.Visible = true
+    end
+    if refs.toggle then
+        refs.toggle.Visible = true
+    end
+    if refs.loadingBlock then
+        pcall(function()
+            refs.loadingBlock:Destroy()
+        end)
+        refs.loadingBlock = nil
+        refs.loadingLabel = nil
     end
 
 end
