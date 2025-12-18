@@ -2783,7 +2783,7 @@ if st.fullBrightLoopOn then
         local dof = ensureObj("DepthOfFieldEffect", "LemeShaderDepthOfField")
         dof.Enabled = true
         dof.FocusDistance = 25
-        dof.InFocusRadius = 20
+        dof.InFocusRadius = 80
         dof.NearIntensity = 0
         dof.FarIntensity = 0.6
         dof.Parent = L
@@ -2894,7 +2894,7 @@ if st.fullBrightLoopOn then
             local dof = refs.shaderObjs.LemeShaderDepthOfField
             dof.Enabled = true
             dof.FocusDistance = 25
-            dof.InFocusRadius = 20
+            dof.InFocusRadius = 80
             dof.NearIntensity = 0
             dof.FarIntensity = 0.6
         end
