@@ -607,6 +607,7 @@ local function Start()
     createButton(refs.otherGroup, "Status", "ステータス", 4, "statusBtn", true)
     createButton(refs.otherGroup, "Chat", "チャット", 5, "chatBtn", true)
     createButton(refs.otherGroup, "Instant Prompt", "即時プロンプト", 6, "instantPromptBtn", false)
+createButton(refs.otherGroup, "Shader", "シェーダー", 7, "shaderBtn", true)
 
     createButton(refs.fovGroup, "Set FOV", "視野を設定", 1, "setFovBtn", false)
     createButton(refs.fovGroup, "Loop Set", "ループ設定", 2, "loopFovBtn", true)
@@ -766,6 +767,10 @@ local function Start()
         bodyTransValue = 0,
         bodyTransLoopOn = false,
         antiAfkOn = false,
+        shaderOn = false,
+        shaderActive = false,
+        shaderSaved = nil,
+        shaderStored = nil,
         noclipOn = false,
         noclipSaved = {},
         tpOn = false,
@@ -996,6 +1001,10 @@ local function Start()
         setToggleText(refs.chatBtn, st.chatOn)
     end
 
+    refs.updShaderBtn = function()
+        setToggleText(refs.shaderBtn, st.shaderOn)
+    end
+
     local function updNoMaxZoomBtn()
         setToggleText(refs.noMaxZoomBtn, st.noMaxZoomOn)
     end
@@ -1141,6 +1150,8 @@ local function Start()
         updSmartFlyBtn()
         updSmartResetBtn()
         updChatBtn()
+    refs.updShaderBtn()
+        refs.updShaderBtn()
         updNoMaxZoomBtn()
         updNoMinZoomBtn()
         updLoopKillBtn()
@@ -2523,7 +2534,8 @@ local function Start()
                 end
             end
         end
-                if st.bodyTransLoopOn then
+                        refs.shaderStep()
+if st.bodyTransLoopOn then
             refs.applyBodyTransparency(st.bodyTransValue)
         end
 if st.fullBrightLoopOn then
@@ -2703,6 +2715,201 @@ if st.fullBrightLoopOn then
         end
         if cfg.Enabled ~= desired then
             cfg.Enabled = desired
+        end
+    end
+
+    refs.shaderEnable = function()
+        if st.shaderActive then
+            return
+        end
+        local terrain = ws:FindFirstChild("Terrain") or ws.Terrain
+        if not terrain then
+            return
+        end
+
+        st.shaderSaved = {
+            Brightness = L.Brightness,
+            ShadowSoftness = L.ShadowSoftness,
+            EnvironmentDiffuseScale = L.EnvironmentDiffuseScale,
+            EnvironmentSpecularScale = L.EnvironmentSpecularScale,
+            Ambient = L.Ambient,
+            OutdoorAmbient = L.OutdoorAmbient,
+            GlobalShadows = L.GlobalShadows,
+            WaterReflectance = terrain.WaterReflectance,
+            WaterTransparency = terrain.WaterTransparency
+        }
+
+        refs.shaderStore = refs.shaderStore or Instance.new("Folder")
+        refs.shaderStore.Name = "ShaderStore"
+        refs.shaderStore.Parent = gui
+
+        st.shaderStored = {}
+
+        local function storeChildren(parent, className)
+            for _, v in ipairs(parent:GetChildren()) do
+                if v.ClassName == className then
+                    st.shaderStored[#st.shaderStored + 1] = { obj = v, parent = parent }
+                    v.Parent = refs.shaderStore
+                end
+            end
+        end
+
+        storeChildren(L, "Atmosphere")
+        storeChildren(L, "Sky")
+        storeChildren(L, "BlurEffect")
+        storeChildren(L, "DepthOfFieldEffect")
+        storeChildren(L, "SunRaysEffect")
+        storeChildren(terrain, "Clouds")
+
+        refs.shaderObjs = refs.shaderObjs or {}
+
+        local function ensureObj(className, key)
+            local o = refs.shaderObjs[key]
+            if not o or not o.Parent then
+                o = Instance.new(className)
+                o.Name = key
+                refs.shaderObjs[key] = o
+            end
+            return o
+        end
+
+        ensureObj("Atmosphere", "LemeShaderAtmosphere").Parent = L
+        ensureObj("Sky", "LemeShaderSky").Parent = L
+
+        local blur = ensureObj("BlurEffect", "LemeShaderBlur")
+        blur.Size = 4
+        blur.Parent = L
+
+        local dof = ensureObj("DepthOfFieldEffect", "LemeShaderDepthOfField")
+        dof.Enabled = true
+        dof.FocusDistance = 25
+        dof.InFocusRadius = 20
+        dof.NearIntensity = 0
+        dof.FarIntensity = 0.6
+        dof.Parent = L
+
+        ensureObj("SunRaysEffect", "LemeShaderSunRays").Parent = L
+        ensureObj("Clouds", "LemeShaderClouds").Parent = terrain
+
+        st.shaderActive = true
+    end
+
+    refs.shaderDisable = function()
+        if not st.shaderActive then
+            return
+        end
+        local terrain = ws:FindFirstChild("Terrain") or ws.Terrain
+        if terrain and st.shaderSaved then
+            L.Brightness = st.shaderSaved.Brightness
+            L.ShadowSoftness = st.shaderSaved.ShadowSoftness
+            L.EnvironmentDiffuseScale = st.shaderSaved.EnvironmentDiffuseScale
+            L.EnvironmentSpecularScale = st.shaderSaved.EnvironmentSpecularScale
+            L.Ambient = st.shaderSaved.Ambient
+            L.OutdoorAmbient = st.shaderSaved.OutdoorAmbient
+            L.GlobalShadows = st.shaderSaved.GlobalShadows
+            terrain.WaterReflectance = st.shaderSaved.WaterReflectance
+            terrain.WaterTransparency = st.shaderSaved.WaterTransparency
+        end
+
+        if refs.shaderObjs then
+            for _, o in pairs(refs.shaderObjs) do
+                if typeof(o) == "Instance" then
+                    pcall(function()
+                        o:Destroy()
+                    end)
+                end
+            end
+        end
+        refs.shaderObjs = nil
+
+        if st.shaderStored and refs.shaderStore then
+            for _, item in ipairs(st.shaderStored) do
+                if item and item.obj and typeof(item.obj) == "Instance" and item.parent then
+                    pcall(function()
+                        item.obj.Parent = item.parent
+                    end)
+                end
+            end
+        end
+        st.shaderStored = nil
+
+        if refs.shaderStore then
+            pcall(function()
+                refs.shaderStore:Destroy()
+            end)
+        end
+        refs.shaderStore = nil
+        st.shaderSaved = nil
+        st.shaderActive = false
+    end
+
+    refs.shaderApplyFrame = function()
+        if not st.shaderActive then
+            return
+        end
+        local terrain = ws:FindFirstChild("Terrain") or ws.Terrain
+        if not terrain then
+            return
+        end
+
+        if refs.shaderObjs and refs.shaderStore then
+            local function moveIfOther(parent, className, keep)
+                for _, v in ipairs(parent:GetChildren()) do
+                    if v.ClassName == className and v ~= keep then
+                        st.shaderStored = st.shaderStored or {}
+                        st.shaderStored[#st.shaderStored + 1] = { obj = v, parent = parent }
+                        v.Parent = refs.shaderStore
+                    end
+                end
+            end
+
+            moveIfOther(L, "Atmosphere", refs.shaderObjs.LemeShaderAtmosphere)
+            moveIfOther(L, "Sky", refs.shaderObjs.LemeShaderSky)
+            moveIfOther(L, "BlurEffect", refs.shaderObjs.LemeShaderBlur)
+            moveIfOther(L, "DepthOfFieldEffect", refs.shaderObjs.LemeShaderDepthOfField)
+            moveIfOther(L, "SunRaysEffect", refs.shaderObjs.LemeShaderSunRays)
+            moveIfOther(terrain, "Clouds", refs.shaderObjs.LemeShaderClouds)
+        end
+
+        if not refs.shaderObjs or not refs.shaderObjs.LemeShaderBlur then
+            st.shaderActive = false
+            refs.shaderEnable()
+        end
+
+        L.Brightness = 4
+        L.ShadowSoftness = 0
+        L.EnvironmentDiffuseScale = 0.202
+        L.EnvironmentSpecularScale = 0.202
+        L.Ambient = Color3.fromRGB(64, 72, 79)
+        L.OutdoorAmbient = Color3.fromRGB(64, 72, 79)
+        L.GlobalShadows = true
+
+        terrain.WaterReflectance = 1
+        terrain.WaterTransparency = 1
+
+        if refs.shaderObjs and refs.shaderObjs.LemeShaderBlur then
+            refs.shaderObjs.LemeShaderBlur.Size = 4
+        end
+        if refs.shaderObjs and refs.shaderObjs.LemeShaderDepthOfField then
+            local dof = refs.shaderObjs.LemeShaderDepthOfField
+            dof.Enabled = true
+            dof.FocusDistance = 25
+            dof.InFocusRadius = 20
+            dof.NearIntensity = 0
+            dof.FarIntensity = 0.6
+        end
+    end
+
+    refs.shaderStep = function()
+        if st.shaderOn then
+            if not st.shaderActive then
+                refs.shaderEnable()
+            end
+            refs.shaderApplyFrame()
+        else
+            if st.shaderActive then
+                refs.shaderDisable()
+            end
         end
     end
 
@@ -3472,6 +3679,14 @@ if st.fullBrightLoopOn then
         end
         st.chatOn = not st.chatOn
         updChatBtn()
+    end)
+
+refs.shaderBtn.Activated:Connect(function()
+        if destroyed then
+            return
+        end
+        st.shaderOn = not st.shaderOn
+        refs.updShaderBtn()
     end)
 
     api.buttonActions["instantPromptBtn"] = function()
