@@ -1,5 +1,94 @@
 local g = typeof(getgenv) == "function" and getgenv() or _G
 
+
+
+do
+    local gg = typeof(getgenv) == "function" and getgenv() or _G
+    if type(gg.LemeGUIV2_SnowCloudyInit) ~= "function" then
+        gg.LemeGUIV2_SnowCloudyInit = function(st, refs)
+            local L = game:GetService("Lighting")
+            local R = game:GetService("RunService")
+            local key = "LemeSnowCloudy"
+            local saved = nil
+            local cc = nil
+
+            local function ensureCC()
+                if not cc or not cc.Parent then
+                    cc = L:FindFirstChild("LemeSnowCloudyCC")
+                    if not cc then
+                        cc = Instance.new("ColorCorrectionEffect")
+                        cc.Name = "LemeSnowCloudyCC"
+                        cc.Parent = L
+                    end
+                end
+            end
+
+            local function cleanup()
+                pcall(function()
+                    R:UnbindFromRenderStep(key)
+                end)
+                if cc and cc.Parent then
+                    pcall(function()
+                        cc:Destroy()
+                    end)
+                end
+                cc = nil
+                saved = nil
+            end
+
+            pcall(function()
+                R:UnbindFromRenderStep(key)
+            end)
+
+            R:BindToRenderStep(key, Enum.RenderPriority.Last.Value, function()
+                if not st or st.snowOn ~= true then
+                    if saved then
+                        for sky, v in pairs(saved) do
+                            if sky and sky.Parent then
+                                pcall(function()
+                                    sky.CelestialBodiesShown = v
+                                end)
+                            end
+                        end
+                    end
+                    cleanup()
+                    return
+                end
+
+                if not saved then
+                    saved = {}
+                end
+
+                for _, sky in ipairs(L:GetChildren()) do
+                    if sky:IsA("Sky") then
+                        if saved[sky] == nil then
+                            saved[sky] = sky.CelestialBodiesShown
+                        end
+                        pcall(function()
+                            sky.CelestialBodiesShown = false
+                        end)
+                    end
+                end
+
+                ensureCC()
+                pcall(function()
+                    cc.Brightness = -0.08
+                    cc.Contrast = 0.15
+                    cc.Saturation = -0.25
+                    cc.TintColor = Color3.fromRGB(220, 220, 220)
+                end)
+
+                if refs and refs.snowEmitter and refs.snowEmitter.Parent then
+                    pcall(function()
+                        refs.snowEmitter.Speed = NumberRange.new(12, 20)
+                    end)
+                end
+            end)
+        end
+    end
+end
+
+
 local function Start()
     if g.LemeGUIV2 and type(g.LemeGUIV2) == "table" and type(g.LemeGUIV2.D) == "function" then
         pcall(g.LemeGUIV2.D)
@@ -27,7 +116,7 @@ local function Start()
         end)
         lp = P.LocalPlayer
         if not lp then
-            task.wait()
+            wait()
         end
     end
 
@@ -225,13 +314,13 @@ local function Start()
             end
         end
 
-        task.delay(6, safeDestroy)
+        delay(6, safeDestroy)
 
         pcall(function()
             TS:Create(f, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 0.5 }):Play()
         end)
 
-        task.delay(0.3, function()
+        delay(0.3, function()
             if not lbl or not lbl.Parent then
                 return
             end
@@ -240,7 +329,7 @@ local function Start()
             end)
         end)
 
-        task.delay(1.6, function()
+        delay(1.6, function()
             if not lbl or not lbl.Parent then
                 return
             end
@@ -249,7 +338,7 @@ local function Start()
             end)
         end)
 
-        task.delay(1.9, function()
+        delay(1.9, function()
             if lbl and lbl.Parent then
                 pcall(function()
                     lbl:Destroy()
@@ -263,7 +352,7 @@ local function Start()
             end)
         end)
 
-        task.delay(2.25, safeDestroy)
+        delay(2.25, safeDestroy)
     end
 
     local gui = Instance.new("ScreenGui")
@@ -284,6 +373,8 @@ local function Start()
     refs.loadingBlock.Active = false
     refs.loadingBlock.Parent = gui
 
+
+    refs.loadingBlock.Visible = false
     refs.loadingLabel = Instance.new("TextLabel")
     refs.loadingLabel.Name = "LoadingLabel"
     refs.loadingLabel.Size = UDim2.new(1, -20, 0, 30)
@@ -293,13 +384,22 @@ local function Start()
     refs.loadingLabel.Font = Enum.Font.Code
     refs.loadingLabel.TextColor3 = Color3.new(1, 1, 1)
     refs.loadingLabel.TextSize = 16
-    refs.loadingLabel.Text = "Loading..."
+    refs.loadingLabel.Text = "Delayed Loading. Please wait..."
     refs.loadingLabel.Active = false
     refs.loadingLabel.ZIndex = 2001
     refs.loadingLabel.Parent = refs.loadingBlock
 
 
-    task.spawn(function()
+
+
+
+    delay(1.2, function()
+        if refs.loadingBlock and refs.loadingBlock.Parent then
+            refs.loadingBlock.Visible = true
+        end
+    end)
+
+    spawn(function()
         playOverlay(gui)
     end)
     local FRAME_W = 420
@@ -500,7 +600,7 @@ local function Start()
         tb.Focused:Connect(function()
             local pf = tb:GetAttribute("Prefix") or ""
             local minCur = #pf + 1
-            task.defer(function()
+            spawn(function()
                 if not tb or not tb.Parent then
                     return
                 end
@@ -556,6 +656,7 @@ local function Start()
     refs.antiGroup = createGroup("Anti", "耐性", 4, "Anti")
     refs.humanoidGroup = createGroup("Humanoid", "体", 5, "Humanoid")
     refs.otherGroup = createGroup("Other", "その他", 6, "Other")
+    refs.shaderGroup = createGroup("Shader", "シェーダー", 6.5, "Shader")
     refs.fovGroup = createGroup("FOV", "視野", 7, "FOV")
     refs.speedGroup = createGroup("Speed", "歩く速度", 8, "SpeedGroup")
     refs.jumpGroup = createGroup("Jump", "ジャンプ力", 9, "Jump")
@@ -605,7 +706,8 @@ local function Start()
     createButton(refs.otherGroup, "Status", "ステータス", 4, "statusBtn", true)
     createButton(refs.otherGroup, "Chat", "チャット", 5, "chatBtn", true)
     createButton(refs.otherGroup, "Instant Prompt", "即時プロンプト", 6, "instantPromptBtn", false)
-createButton(refs.otherGroup, "Shader", "シェーダー", 7, "shaderBtn", true)
+createButton(refs.shaderGroup, "Shader", "シェーダー", 1, "shaderBtn", true)
+createButton(refs.shaderGroup, "Snow", "雪", 2, "snowBtn", true)
 
     createButton(refs.fovGroup, "Set FOV", "視野を設定", 1, "setFovBtn", false)
     createButton(refs.fovGroup, "Loop Set", "ループ設定", 2, "loopFovBtn", true)
@@ -769,6 +871,9 @@ createButton(refs.otherGroup, "Shader", "シェーダー", 7, "shaderBtn", true)
         shaderActive = false,
         shaderSaved = nil,
         shaderStored = nil,
+        snowOn = false,
+        snowActive = false,
+snowFogSaved = nil,
         noclipOn = false,
         noclipSaved = {},
         tpOn = false,
@@ -868,7 +973,12 @@ createButton(refs.otherGroup, "Shader", "シェーダー", 7, "shaderBtn", true)
         language = "en",
     }
 
-    local hoverAlign, hoverOri, hoverAtt, hoverOriAtt
+    
+    if type(g.LemeGUIV2_SnowCloudyInit) == "function" then
+        g.LemeGUIV2_SnowCloudyInit(st, refs)
+    end
+
+local hoverAlign, hoverOri, hoverAtt, hoverOriAtt
 
     local vUser do
         pcall(function()
@@ -1003,6 +1113,9 @@ createButton(refs.otherGroup, "Shader", "シェーダー", 7, "shaderBtn", true)
         setToggleText(refs.shaderBtn, st.shaderOn)
     end
 
+    refs.updSnowBtn = function()
+        setToggleText(refs.snowBtn, st.snowOn)
+    end
     local function updNoMaxZoomBtn()
         setToggleText(refs.noMaxZoomBtn, st.noMaxZoomOn)
     end
@@ -1149,7 +1262,8 @@ createButton(refs.otherGroup, "Shader", "シェーダー", 7, "shaderBtn", true)
         updSmartResetBtn()
         updChatBtn()
     refs.updShaderBtn()
-        refs.updShaderBtn()
+    refs.updSnowBtn()
+    if api and type(api.onLanguageChanged) == "function" then api.onLanguageChanged() end
         updNoMaxZoomBtn()
         updNoMinZoomBtn()
         updLoopKillBtn()
@@ -1178,7 +1292,7 @@ createButton(refs.otherGroup, "Shader", "シェーダー", 7, "shaderBtn", true)
     local function rejoin()
         if #P:GetPlayers() == 1 then
             lp:Kick("Rejoining...")
-            task.wait()
+            wait()
             T:Teleport(game.PlaceId, lp)
         else
             T:TeleportToPlaceInstance(game.PlaceId, game.JobId, lp)
@@ -1615,7 +1729,7 @@ createButton(refs.otherGroup, "Shader", "シェーダー", 7, "shaderBtn", true)
                 hum.AutoRotate = false
                 local pos = hrp2.Position
                 hrp2.CFrame = CFrame.new(pos, pos + savedLook)
-                task.delay(0.1, function()
+                delay(0.1, function()
                     if destroyed then
                         return
                     end
@@ -2240,7 +2354,7 @@ createButton(refs.otherGroup, "Shader", "シェーダー", 7, "shaderBtn", true)
             tryClipboard(txt)
             btn.BackgroundColor3 = Color3.fromRGB(40, 170, 90)
             btn.Text = "✅"
-            task.delay(2, function()
+            delay(2, function()
                 if not btn or not btn.Parent then
                     return
                 end
@@ -2480,7 +2594,7 @@ createButton(refs.otherGroup, "Shader", "シェーダー", 7, "shaderBtn", true)
         end
     end
 
-    local function applyLoops()
+    local function applyLoops(dt)
         local cam2 = ws.CurrentCamera
         if st.fovLoop and cam2 then
             cam2.FieldOfView = st.fovValue
@@ -2533,6 +2647,7 @@ createButton(refs.otherGroup, "Shader", "シェーダー", 7, "shaderBtn", true)
             end
         end
                         refs.shaderStep()
+        refs.snowStep(dt)
 if st.bodyTransLoopOn then
             refs.applyBodyTransparency(st.bodyTransValue)
         end
@@ -2898,6 +3013,167 @@ if st.fullBrightLoopOn then
         else
             if st.shaderActive then
                 refs.shaderDisable()
+            end
+        end
+    end    refs.snowEnable = function()
+        if st.snowActive then
+            return
+        end
+        local cam = ws.CurrentCamera
+        if not cam then
+            return
+        end
+
+        if not refs.snowPart or not refs.snowPart.Parent then
+            refs.snowPart = Instance.new("Part")
+            refs.snowPart.Name = "LemeSnowPart"
+            refs.snowPart.Anchored = true
+            refs.snowPart.CanCollide = false
+            refs.snowPart.CanTouch = false
+            refs.snowPart.CanQuery = false
+            refs.snowPart.Transparency = 1
+            refs.snowPart.Size = Vector3.new(200, 1, 200)
+            refs.snowPart.Shape = Enum.PartType.Block
+            refs.snowPart.Massless = true
+            refs.snowPart.Parent = ws
+        end
+
+        if not refs.snowEmitter or not refs.snowEmitter.Parent then
+            refs.snowEmitter = Instance.new("ParticleEmitter")
+            refs.snowEmitter.Name = "LemeSnowEmitter"
+            refs.snowEmitter.Parent = refs.snowPart
+        end
+
+        refs.snowEmitter.Enabled = true
+        refs.snowEmitter.Rate = 0
+        refs.snowEmitter.Lifetime = NumberRange.new(7, 10)
+        refs.snowEmitter.Speed = NumberRange.new(12, 20)
+        refs.snowEmitter.RotSpeed = NumberRange.new(-60, 60)
+        refs.snowEmitter.Rotation = NumberRange.new(0, 360)
+        refs.snowEmitter.SpreadAngle = Vector2.new(0, 0)
+        refs.snowEmitter.EmissionDirection = Enum.NormalId.Bottom
+        refs.snowEmitter.Acceleration = Vector3.new(0, 0, 0)
+        refs.snowEmitter.Drag = 0
+        refs.snowEmitter.LockedToPart = false
+        refs.snowEmitter.VelocityInheritance = 0
+        refs.snowEmitter.LightEmission = 1
+        refs.snowEmitter.LightInfluence = 0
+        refs.snowEmitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+        refs.snowEmitter.Size = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.35),
+            NumberSequenceKeypoint.new(1, 0.15)
+        })
+        refs.snowEmitter.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0),
+            NumberSequenceKeypoint.new(1, 0.35)
+        })
+        refs.snowEmitter.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
+
+        st.snowActive = true
+    end
+
+    refs.snowDisable = function()
+        if not st.snowActive then
+            return
+        end
+        if refs.snowEmitter then
+            pcall(function()
+                refs.snowEmitter.Enabled = false
+            end)
+            pcall(function()
+                refs.snowEmitter:Destroy()
+            end)
+        end
+        refs.snowEmitter = nil
+
+        if refs.snowPart then
+            pcall(function()
+                refs.snowPart:Destroy()
+            end)
+        end
+        refs.snowPart = nil
+        if st.snowFogSaved then
+            L.FogStart = st.snowFogSaved.FogStart
+            L.FogEnd = st.snowFogSaved.FogEnd
+            L.FogColor = st.snowFogSaved.FogColor
+            st.snowFogSaved = nil
+        end
+        st.snowActive = false
+    end
+
+    refs.snowApplyFrame = function(dt)
+        if not st.snowActive then
+            return
+        end
+        local cam = ws.CurrentCamera
+        if not cam then
+            return
+        end
+        if not refs.snowPart or not refs.snowPart.Parent then
+            st.snowActive = false
+            refs.snowEnable()
+            return
+        end
+        if not refs.snowEmitter or not refs.snowEmitter.Parent then
+            st.snowActive = false
+            refs.snowEnable()
+            return
+        end
+
+        local basePos = cam.CFrame.Position + Vector3.new(0, 50, 0)
+
+        if not st.snowFogSaved then
+            st.snowFogSaved = { FogStart = L.FogStart, FogEnd = L.FogEnd, FogColor = L.FogColor }
+        end
+        L.FogColor = Color3.fromRGB(235, 238, 240)
+        L.FogStart = 0
+        L.FogEnd = 1000
+
+        local d = tonumber(dt) or (1 / 60)
+        local perSec = 1000
+        if perSec < 0 then
+            perSec = 0
+        elseif perSec > 5000 then
+            perSec = 5000
+        end
+
+        st.snowEmitAcc = (tonumber(st.snowEmitAcc) or 0) + (perSec * d)
+        local emitCount = math.floor(st.snowEmitAcc)
+        st.snowEmitAcc = st.snowEmitAcc - emitCount
+        if emitCount > 250 then
+            emitCount = 250
+            st.snowEmitAcc = 0
+        end
+
+        local cos30 = 0.8660254037844386
+        local sin30 = 0.5
+
+        for i = 1, emitCount do
+            local theta = math.random() * (math.pi * 2)
+            local dir = Vector3.new(sin30 * math.cos(theta), -cos30, sin30 * math.sin(theta))
+            local up = -dir
+
+            local right = up:Cross(Vector3.new(0, 0, 1))
+            if right.Magnitude < 0.001 then
+                right = up:Cross(Vector3.new(1, 0, 0))
+            end
+            right = right.Unit
+            local back = right:Cross(up).Unit
+
+            refs.snowPart.CFrame = CFrame.fromMatrix(basePos, right, up, back)
+            refs.snowEmitter:Emit(1)
+        end
+    end
+
+    refs.snowStep = function(dt)
+        if st.snowOn then
+            if not st.snowActive then
+                refs.snowEnable()
+            end
+            refs.snowApplyFrame(dt)
+        else
+            if st.snowActive then
+                refs.snowDisable()
             end
         end
     end
@@ -3319,7 +3595,7 @@ if st.fullBrightLoopOn then
         updateAntiVoid()
         updateAntiFling()
         updateStatus(dt)
-        applyLoops()
+        applyLoops(dt)
         updateChat()
         if st.loopKillOn then
             local c = getChar()
@@ -3476,7 +3752,7 @@ if st.fullBrightLoopOn then
     end))
 
     addConn(lp.CharacterAdded:Connect(function(newChar)
-        task.wait(0.1)
+        wait(0.1)
         if st.noclipOn then
             cacheNoclip()
         end
@@ -3677,6 +3953,13 @@ refs.shaderBtn.Activated:Connect(function()
         refs.updShaderBtn()
     end)
 
+refs.snowBtn.Activated:Connect(function()
+        if destroyed then
+            return
+        end
+        st.snowOn = not st.snowOn
+        refs.updSnowBtn()
+    end)
     api.buttonActions["instantPromptBtn"] = function()
         if destroyed then
             return
@@ -3844,7 +4127,6 @@ refs.shaderBtn.Activated:Connect(function()
         local pf = refs.gravInput:GetAttribute("Prefix") or ""
         refs.gravInput.Text = pf .. tostring(st.gravValue)
     end)
-
     refs.setBodyTransBtn.Activated:Connect(function()
         if destroyed then
             return
@@ -4828,7 +5110,7 @@ refs.shaderBtn.Activated:Connect(function()
             return
         end
         C.D()
-        task.defer(Start)
+        spawn(Start)
     end
     refs.reloadBtn.Activated:Connect(api.buttonActions["reloadBtn"])
 
@@ -5000,6 +5282,9 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
 
         if st and st.language then
             table.insert(out, "state,value,language=" .. esc(st.language))
+        end
+
+        if st and "normal" then
         end
 
         if st and st.smartFlyKey then
@@ -5177,8 +5462,7 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
                         wantToggles[key] = (val == "true")
                     elseif typ == "value" then
                         if key == "language" then
-                            wantLanguage = unesc(val)
-                        end
+                            wantLanguage = unesc(val)end
                     elseif typ == "toggle" then
                         wantStateToggles[key] = (val == "true")
                     elseif typ == "keycode" then
@@ -5202,7 +5486,6 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
                 api.applyLanguage()
             end
         end
-
         if st and wantKeys then
             local function setKey(name, kcName)
                 if not kcName then
