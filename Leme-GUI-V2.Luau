@@ -2772,6 +2772,10 @@ if st.fullBrightLoopOn then
         end
 
         ensureObj("Atmosphere", "LemeShaderAtmosphere").Parent = L
+        if refs.shaderObjs and refs.shaderObjs.LemeShaderAtmosphere then
+            local a = refs.shaderObjs.LemeShaderAtmosphere
+            a.Density = 0.25
+        end
         ensureObj("Sky", "LemeShaderSky").Parent = L
 
         local blur = ensureObj("BlurEffect", "LemeShaderBlur")
@@ -2879,6 +2883,9 @@ if st.fullBrightLoopOn then
 
         if refs.shaderObjs and refs.shaderObjs.LemeShaderBlur then
             refs.shaderObjs.LemeShaderBlur.Size = 4
+        end
+        if refs.shaderObjs and refs.shaderObjs.LemeShaderAtmosphere then
+            refs.shaderObjs.LemeShaderAtmosphere.Density = 0.25
         end
     end
 
