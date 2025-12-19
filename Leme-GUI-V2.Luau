@@ -186,7 +186,6 @@ local function Start()
     end
 
 
-
     local function playOverlay(gui)
         local TS = S(game, "TweenService")
         local f = Instance.new("Frame")
@@ -298,7 +297,6 @@ local function Start()
     refs.loadingLabel.Active = false
     refs.loadingLabel.ZIndex = 2001
     refs.loadingLabel.Parent = refs.loadingBlock
-
 
 
     task.spawn(function()
@@ -2780,14 +2778,6 @@ if st.fullBrightLoopOn then
         blur.Size = 4
         blur.Parent = L
 
-        local dof = ensureObj("DepthOfFieldEffect", "LemeShaderDepthOfField")
-        dof.Enabled = true
-        dof.FocusDistance = 25
-        dof.InFocusRadius = 80
-        dof.NearIntensity = 0
-        dof.FarIntensity = 0.6
-        dof.Parent = L
-
         ensureObj("SunRaysEffect", "LemeShaderSunRays").Parent = L
         ensureObj("Clouds", "LemeShaderClouds").Parent = terrain
 
@@ -2866,7 +2856,7 @@ if st.fullBrightLoopOn then
             moveIfOther(L, "Atmosphere", refs.shaderObjs.LemeShaderAtmosphere)
             moveIfOther(L, "Sky", refs.shaderObjs.LemeShaderSky)
             moveIfOther(L, "BlurEffect", refs.shaderObjs.LemeShaderBlur)
-            moveIfOther(L, "DepthOfFieldEffect", refs.shaderObjs.LemeShaderDepthOfField)
+            moveIfOther(L, "DepthOfFieldEffect", nil)
             moveIfOther(L, "SunRaysEffect", refs.shaderObjs.LemeShaderSunRays)
             moveIfOther(terrain, "Clouds", refs.shaderObjs.LemeShaderClouds)
         end
@@ -2889,14 +2879,6 @@ if st.fullBrightLoopOn then
 
         if refs.shaderObjs and refs.shaderObjs.LemeShaderBlur then
             refs.shaderObjs.LemeShaderBlur.Size = 4
-        end
-        if refs.shaderObjs and refs.shaderObjs.LemeShaderDepthOfField then
-            local dof = refs.shaderObjs.LemeShaderDepthOfField
-            dof.Enabled = true
-            dof.FocusDistance = 25
-            dof.InFocusRadius = 80
-            dof.NearIntensity = 0
-            dof.FarIntensity = 0.6
         end
     end
 
@@ -3401,7 +3383,6 @@ if st.fullBrightLoopOn then
             hum.WalkSpeed = 0
         end
     end))
-
 
 
     addConn(R.RenderStepped:Connect(function()
