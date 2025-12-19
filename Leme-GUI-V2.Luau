@@ -2,6 +2,7 @@ local g = typeof(getgenv) == "function" and getgenv() or _G
 
 
 
+
 do
     local gg = typeof(getgenv) == "function" and getgenv() or _G
     if type(gg.LemeGUIV2_SnowCloudyInit) ~= "function" then
@@ -9,31 +10,50 @@ do
             local L = game:GetService("Lighting")
             local R = game:GetService("RunService")
             local key = "LemeSnowCloudy"
-            local saved = nil
+            local savedSky = nil
             local cc = nil
+            local ccCreated = false
+            local ccName = nil
 
             local function ensureCC()
-                if not cc or not cc.Parent then
-                    cc = L:FindFirstChild("LemeSnowCloudyCC")
-                    if not cc then
-                        cc = Instance.new("ColorCorrectionEffect")
-                        cc.Name = "LemeSnowCloudyCC"
-                        cc.Parent = L
+                if cc and cc.Parent then
+                    return
+                end
+                if ccName then
+                    local ex = L:FindFirstChild(ccName)
+                    if ex and ex:IsA("ColorCorrectionEffect") then
+                        cc = ex
+                        return
                     end
                 end
+                local n = "LemeSnowCloudyCC"
+                if L:FindFirstChild(n) then
+                    local i = 2
+                    while L:FindFirstChild(n .. i) do
+                        i = i + 1
+                    end
+                    n = n .. i
+                end
+                cc = Instance.new("ColorCorrectionEffect")
+                cc.Name = n
+                cc.Parent = L
+                ccCreated = true
+                ccName = n
             end
 
             local function cleanup()
                 pcall(function()
                     R:UnbindFromRenderStep(key)
                 end)
-                if cc and cc.Parent then
+                if ccCreated and cc and cc.Parent then
                     pcall(function()
                         cc:Destroy()
                     end)
                 end
                 cc = nil
-                saved = nil
+                savedSky = nil
+                ccCreated = false
+                ccName = nil
             end
 
             pcall(function()
@@ -42,8 +62,8 @@ do
 
             R:BindToRenderStep(key, Enum.RenderPriority.Last.Value, function()
                 if not st or st.snowOn ~= true then
-                    if saved then
-                        for sky, v in pairs(saved) do
+                    if savedSky then
+                        for sky, v in pairs(savedSky) do
                             if sky and sky.Parent then
                                 pcall(function()
                                     sky.CelestialBodiesShown = v
@@ -55,14 +75,14 @@ do
                     return
                 end
 
-                if not saved then
-                    saved = {}
+                if not savedSky then
+                    savedSky = {}
                 end
 
                 for _, sky in ipairs(L:GetChildren()) do
                     if sky:IsA("Sky") then
-                        if saved[sky] == nil then
-                            saved[sky] = sky.CelestialBodiesShown
+                        if savedSky[sky] == nil then
+                            savedSky[sky] = sky.CelestialBodiesShown
                         end
                         pcall(function()
                             sky.CelestialBodiesShown = false
@@ -71,12 +91,14 @@ do
                 end
 
                 ensureCC()
-                pcall(function()
-                    cc.Brightness = -0.08
-                    cc.Contrast = 0.15
-                    cc.Saturation = -0.25
-                    cc.TintColor = Color3.fromRGB(220, 220, 220)
-                end)
+                if cc and cc.Parent then
+                    pcall(function()
+                        cc.Brightness = -0.08
+                        cc.Contrast = 0.15
+                        cc.Saturation = -0.25
+                        cc.TintColor = Color3.fromRGB(220, 220, 220)
+                    end)
+                end
 
                 if refs and refs.snowEmitter and refs.snowEmitter.Parent then
                     pcall(function()
