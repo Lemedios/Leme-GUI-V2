@@ -411,7 +411,7 @@ local function Start()
     refs.loadingLabel.Font = Enum.Font.Code
     refs.loadingLabel.TextColor3 = Color3.new(1, 1, 1)
     refs.loadingLabel.TextSize = 16
-    refs.loadingLabel.Text = "Delayed Loading. Please wait..."
+    refs.loadingLabel.Text = "Loading Stucked. Please wait..."
     refs.loadingLabel.Active = false
     refs.loadingLabel.ZIndex = 2001
     refs.loadingLabel.Parent = refs.loadingBlock
