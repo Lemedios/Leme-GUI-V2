@@ -42,9 +42,6 @@ do
             end
 
             local function cleanup()
-                pcall(function()
-                    R:UnbindFromRenderStep(key)
-                end)
                 if ccCreated and cc and cc.Parent then
                     pcall(function()
                         cc:Destroy()
@@ -71,7 +68,15 @@ do
                             end
                         end
                     end
-                    cleanup()
+                    if ccCreated and cc and cc.Parent then
+                        pcall(function()
+                            cc:Destroy()
+                        end)
+                    end
+                    cc = nil
+                    ccCreated = false
+                    ccName = nil
+                    savedSky = nil
                     return
                 end
 
@@ -1744,9 +1749,6 @@ local hoverAlign, hoverOri, hoverAtt, hoverOriAtt
         st.flyMode = m
 
         if m == "none" then
-            if hum then
-                hum.Sit = false
-            end
             if savedLook and hrp2 and hum then
                 hum.AutoRotate = false
                 local pos = hrp2.Position
@@ -1771,7 +1773,7 @@ local hoverAlign, hoverOri, hoverAtt, hoverOriAtt
             removeHoverAlign()
         elseif m == "fly" then
             if hum then
-                hum.Sit = st.sitFlyOn and true or false
+                if st.sitFlyOn then hum.Sit = true end
                 hum.AutoRotate = false
             end
             st.hoverTarget = nil
@@ -1781,7 +1783,7 @@ local hoverAlign, hoverOri, hoverAtt, hoverOriAtt
             st.flyPos = hrp2 and hrp2.Position or nil
         elseif m == "hover" then
             if hum then
-                hum.Sit = st.sitFlyOn and true or false
+                if st.sitFlyOn then hum.Sit = true end
                 hum.AutoRotate = true
             end
             st.flyPos = nil
@@ -1793,7 +1795,7 @@ local hoverAlign, hoverOri, hoverAtt, hoverOriAtt
             end
         elseif m == "vel" then
             if hum then
-                hum.Sit = st.sitFlyOn and true or false
+                if st.sitFlyOn then hum.Sit = true end
                 hum.AutoRotate = true
             end
             st.flyPos = nil
@@ -2697,7 +2699,7 @@ if st.fullBrightLoopOn then
             return
         end
 
-        hum.Sit = st.sitFlyOn and true or false
+        if st.sitFlyOn then hum.Sit = true end
 
         local cf = cam2.CFrame
         local look = cf.LookVector
@@ -3927,13 +3929,6 @@ if st.fullBrightLoopOn then
             return
         end
         st.sitFlyOn = not st.sitFlyOn
-        if not st.sitFlyOn then
-            local c = getChar()
-            local hum = c and c:FindFirstChildOfClass("Humanoid")
-            if hum and st.flyMode ~= "none" then
-                hum.Sit = false
-            end
-        end
         updSitFlyBtn()
     end)
 
