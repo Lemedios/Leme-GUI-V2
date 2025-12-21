@@ -3646,6 +3646,7 @@ if st.fullBrightLoopOn then
         if destroyed then
             return
         end
+        updateAntiFling()
         updateTpWalk(dt)
         updateDesync()
         updateFly(dt)
