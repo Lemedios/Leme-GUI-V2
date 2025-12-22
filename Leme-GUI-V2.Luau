@@ -695,6 +695,7 @@ local function Start()
     refs.desyncGroup = createGroup("Desync", "非同期", 15, "Desync")
     refs.desyncDirGroup = createGroup("Desync Direction", "向きの同期ズレ", 16, "DesyncDirection")
     refs.teleportGroup = createGroup("Teleport", "テレポート", 17, "Teleport")
+    refs.resetCamGroup = createGroup("Reset Camera", "カメラ初期化", 18, "ResetCamera")
     refs.bodyTransGroup = createGroup("Body Transparency", "体の透明度", 19, "BodyTransparency")
     refs.scriptGroup = createGroup("Script", "スクリプト", 99, "Script")
 
@@ -788,6 +789,8 @@ createButton(refs.shaderGroup, "Snow", "雪", 2, "snowBtn", true)
     createLabeledInput(refs.desyncDirGroup, "Pitch", "ピッチ", 4, 0, "desyncDirPitchInput")
     createLabeledInput(refs.desyncDirGroup, "Yaw", "ヨー", 5, 0, "desyncDirYawInput")
 
+    createButton(refs.resetCamGroup, "Reset Camera", "カメラ初期化", 1, "resetCamBtn", false)
+    createButton(refs.resetCamGroup, "Loop Reset", "ループ初期化", 2, "loopResetCamBtn", true)
 
     createButton(refs.scriptGroup, "Load IY", "IYスクリプト", 1, "loadIYBtn", false)
     createButton(refs.scriptGroup, "Load RSpy", "スパイスクリプト", 2, "loadRSpyBtn", false)
@@ -993,6 +996,7 @@ snowFogSaved = nil,
         desyncSourceChar = nil,
         desyncPosTarget = nil,
         desyncMaterialSaved = {},
+        resetCamLoopOn = false,
         language = "en",
     }
 
@@ -1181,6 +1185,9 @@ local hoverAlign, hoverOri, hoverAtt, hoverOriAtt
         end
     end
 
+    local function updLoopResetCamBtn()
+        setToggleText(refs.loopResetCamBtn, st.resetCamLoopOn)
+    end
 
 
     local function updFlingTargetDisplay()
@@ -2490,6 +2497,40 @@ local hoverAlign, hoverOri, hoverAtt, hoverOriAtt
         L.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
     end
 
+    local function applyResetCamera()
+        local cam = ws.CurrentCamera
+        if cam then
+            cam.FieldOfView = 70
+
+            local c = lp.Character
+            local hum = c and c:FindFirstChildOfClass("Humanoid")
+            if hum then
+
+            end
+        end
+        lp.CameraMaxZoomDistance = 1/0
+        lp.CameraMinZoomDistance = -1/0
+        pcall(function()
+            lp.CameraMode = Enum.CameraMode.Classic
+        end)
+        pcall(function()
+            lp.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Zoom
+        end)
+        pcall(function()
+            local ugs = UserSettings():GetService("UserGameSettings")
+            if ugs then
+                pcall(function()
+                    ugs.RotationType = Enum.RotationType.MovementRelative
+                end)
+                pcall(function()
+                    ugs.ComputerMovementMode = Enum.ComputerMovementMode.KeyboardMouse
+                end)
+                pcall(function()
+                    ugs.TouchMovementMode = Enum.TouchMovementMode.Default
+                end)
+            end
+        end)
+    end
 
             refs.applyBodyTransparency = function(val)
         val = tonumber(val) or 0
@@ -3657,6 +3698,14 @@ if st.fullBrightLoopOn then
             return
         end
 
+        if st.resetCamLoopOn then
+            local cam2 = ws.CurrentCamera
+            local cf = cam2 and cam2.CFrame
+            applyResetCamera()
+            if cam2 and cf then
+                cam2.CFrame = cf
+            end
+        end
 
         local c = getChar()
         local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
@@ -4355,7 +4404,21 @@ refs.snowBtn.Activated:Connect(function()
     end
     refs.smartResetTrigBtn.Activated:Connect(api.buttonActions["smartResetTrigBtn"])
 
+    api.buttonActions["resetCamBtn"] = function()
+        if destroyed then
+            return
+        end
+        applyResetCamera()
+    end
+    refs.resetCamBtn.Activated:Connect(api.buttonActions["resetCamBtn"])
 
+    refs.loopResetCamBtn.Activated:Connect(function()
+        if destroyed then
+            return
+        end
+        st.resetCamLoopOn = not st.resetCamLoopOn
+        updLoopResetCamBtn()
+    end)
 
     api.buttonActions["loadIYBtn"] = function()
         if destroyed then
@@ -5274,6 +5337,7 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
         loopMinZoomBtn = "minZoomLoop",
         loopFogBtn = "fogLoop",
         loopFbBtn = "fullBrightLoopOn",
+        loopResetCamBtn = "resetCamLoopOn"
     }
 
     local function applySimpleToggle(btnKey, want)
@@ -5287,6 +5351,8 @@ return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
         end
         if st and type(st[stKey]) == "boolean" then
             st[stKey] = want
+        elseif st and stKey == "resetCamLoopOn" then
+            st.resetCamLoopOn = want
         end
         setToggleText(btn, want)
     end
