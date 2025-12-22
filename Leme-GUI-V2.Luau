@@ -2501,11 +2501,11 @@ local hoverAlign, hoverOri, hoverAtt, hoverOriAtt
         local cam = ws.CurrentCamera
         if cam then
             cam.FieldOfView = 70
-
+            cam.CameraType = Enum.CameraType.Custom
             local c = lp.Character
             local hum = c and c:FindFirstChildOfClass("Humanoid")
             if hum then
-
+                cam.CameraSubject = hum
             end
         end
         lp.CameraMaxZoomDistance = 1/0
@@ -3703,7 +3703,6 @@ if st.fullBrightLoopOn then
             local cf = cam2 and cam2.CFrame
             applyResetCamera()
             if cam2 and cf then
-                cam2.CFrame = cf
             end
         end
 
