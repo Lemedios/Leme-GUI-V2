@@ -3,117 +3,236 @@ local g = typeof(getgenv) == "function" and getgenv() or _G
 
 
 
+
 do
     local gg = typeof(getgenv) == "function" and getgenv() or _G
-    if type(gg.LemeGUIV2_SnowCloudyInit) ~= "function" then
-        gg.LemeGUIV2_SnowCloudyInit = function(st, refs)
-            local L = game:GetService("Lighting")
-            local R = game:GetService("RunService")
-            local key = "LemeSnowCloudy"
-            local savedSky = nil
-            local cc = nil
-            local ccCreated = false
-            local ccName = nil
+    local fn = gg.LemeGUIV2_AutoAntiFile
+    if type(fn) ~= "string" then
+        fn = "LemeGUIV2_AutoAnti.txt"
+        gg.LemeGUIV2_AutoAntiFile = fn
+    end
 
-            local function ensureCC()
-                if cc and cc.Parent then
-                    return
-                end
-                if ccName then
-                    local ex = L:FindFirstChild(ccName)
-                    if ex and ex:IsA("ColorCorrectionEffect") then
-                        cc = ex
-                        return
-                    end
-                end
-                local n = "LemeSnowCloudyCC"
-                if L:FindFirstChild(n) then
-                    local i = 2
-                    while L:FindFirstChild(n .. i) do
-                        i = i + 1
-                    end
-                    n = n .. i
-                end
-                cc = Instance.new("ColorCorrectionEffect")
-                cc.Name = n
-                cc.Parent = L
-                ccCreated = true
-                ccName = n
-            end
+    gg.LemeGUIV2_AutoAntiLoad = function()
+        local ok, data = pcall(function()
+            return readfile(fn)
+        end)
+        local n = 0
+        if ok and type(data) == "string" then
+            n = tonumber(data) or 0
+        end
+        n = math.floor(tonumber(n) or 0)
+        if n < 0 then
+            n = 0
+        elseif n > 7 then
+            n = 7
+        end
+        return n
+    end
 
-            local function cleanup()
-                if ccCreated and cc and cc.Parent then
-                    pcall(function()
-                        cc:Destroy()
-                    end)
-                end
-                cc = nil
-                savedSky = nil
-                ccCreated = false
-                ccName = nil
-            end
+    gg.LemeGUIV2_AutoAntiSave = function(mask)
+        local n = math.floor(tonumber(mask) or 0)
+        if n < 0 then
+            n = 0
+        elseif n > 7 then
+            n = 7
+        end
+        pcall(function()
+            writefile(fn, tostring(n))
+        end)
+    end
 
-            pcall(function()
-                R:UnbindFromRenderStep(key)
-            end)
+    gg.LemeGUIV2_AutoAntiUpdateBtn = function(refs, st)
+        local b = refs and refs.autoAntiBtn
+        if not b or not st then
+            return
+        end
+        b.Text = st.language == "jp" and "自動耐性" or "Auto Anti"
+    end
 
-            R:BindToRenderStep(key, Enum.RenderPriority.Last.Value, function()
-                if not st or st.snowOn ~= true then
-                    if savedSky then
-                        for sky, v in pairs(savedSky) do
-                            if sky and sky.Parent then
-                                pcall(function()
-                                    sky.CelestialBodiesShown = v
-                                end)
-                            end
-                        end
-                    end
-                    if ccCreated and cc and cc.Parent then
-                        pcall(function()
-                            cc:Destroy()
-                        end)
-                    end
-                    cc = nil
-                    ccCreated = false
-                    ccName = nil
-                    savedSky = nil
-                    return
-                end
-
-                if not savedSky then
-                    savedSky = {}
-                end
-
-                for _, sky in ipairs(L:GetChildren()) do
-                    if sky:IsA("Sky") then
-                        if savedSky[sky] == nil then
-                            savedSky[sky] = sky.CelestialBodiesShown
-                        end
-                        pcall(function()
-                            sky.CelestialBodiesShown = false
-                        end)
-                    end
-                end
-
-                ensureCC()
-                if cc and cc.Parent then
-                    pcall(function()
-                        cc.Brightness = -0.08
-                        cc.Contrast = 0.15
-                        cc.Saturation = -0.25
-                        cc.TintColor = Color3.fromRGB(220, 220, 220)
-                    end)
-                end
-
-                if refs and refs.snowEmitter and refs.snowEmitter.Parent then
-                    pcall(function()
-                        refs.snowEmitter.Speed = NumberRange.new(12, 20)
-                    end)
-                end
-            end)
+    gg.LemeGUIV2_AutoAntiRefreshUI = function(refs, st)
+        if not refs or not st then
+            return
+        end
+        local overlay = refs.autoAntiOverlay
+        if not overlay or not overlay.Parent then
+            return
+        end
+        local m = math.floor(tonumber(st.autoAntiMask) or 0)
+        if m < 0 then
+            m = 0
+        elseif m > 7 then
+            m = 7
+        end
+        if refs.autoAntiTitle then
+            refs.autoAntiTitle.Text = st.language == "jp" and "自動耐性を選択" or "Select Auto Anti"
+        end
+        if refs.autoAntiVoid then
+            refs.autoAntiVoid.Text = st.language == "jp" and "奈落耐性" or "Anti Void"
+            refs.autoAntiVoid.BackgroundColor3 = bit32.band(m, 1) ~= 0 and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
+        end
+        if refs.autoAntiAfk then
+            refs.autoAntiAfk.Text = st.language == "jp" and "放置耐性" or "Anti AFK"
+            refs.autoAntiAfk.BackgroundColor3 = bit32.band(m, 2) ~= 0 and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
+        end
+        if refs.autoAntiFling then
+            refs.autoAntiFling.Text = st.language == "jp" and "吹き飛ばし耐性" or "Anti Fling"
+            refs.autoAntiFling.BackgroundColor3 = bit32.band(m, 4) ~= 0 and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
         end
     end
+
+    gg.LemeGUIV2_AutoAntiToggleBit = function(st, refs, bit)
+        local m = math.floor(tonumber(st and st.autoAntiMask) or 0)
+        if m < 0 then
+            m = 0
+        elseif m > 7 then
+            m = 7
+        end
+        if bit32.band(m, bit) ~= 0 then
+            m = bit32.band(m, bit32.bnot(bit))
+        else
+            m = bit32.bor(m, bit)
+        end
+        if st then
+            st.autoAntiMask = m
+        end
+        gg.LemeGUIV2_AutoAntiSave(m)
+        gg.LemeGUIV2_AutoAntiRefreshUI(refs, st)
+        gg.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
+    end
+
+    gg.LemeGUIV2_AutoAntiEnsureUI = function(refs, st, gui)
+        if not refs or not st or not gui then
+            return
+        end
+        if refs.autoAntiOverlay then
+            return
+        end
+
+        local overlay = Instance.new("Frame")
+        overlay.Name = "AutoAntiOverlay"
+        overlay.Size = UDim2.new(1, 0, 1, 0)
+        overlay.Position = UDim2.new(0, 0, 0, 0)
+        overlay.BackgroundColor3 = Color3.new(0, 0, 0)
+        overlay.BackgroundTransparency = 0.4
+        overlay.BorderSizePixel = 0
+        overlay.ZIndex = 1001
+        overlay.Parent = gui
+        refs.autoAntiOverlay = overlay
+
+        local inner = Instance.new("Frame")
+        inner.Size = UDim2.new(0, 240, 0, 160)
+        inner.AnchorPoint = Vector2.new(0.5, 0.5)
+        inner.Position = UDim2.new(0.5, 0, 0.5, 0)
+        inner.BackgroundColor3 = refs.main.BackgroundColor3
+        inner.BackgroundTransparency = refs.main.BackgroundTransparency
+        inner.BorderSizePixel = 0
+        inner.ZIndex = 1002
+        inner.Parent = overlay
+
+        local ic = Instance.new("UICorner")
+        ic.CornerRadius = UDim.new(0, 10)
+        ic.Parent = inner
+
+        local title = Instance.new("TextLabel")
+        title.BackgroundTransparency = 1
+        title.BorderSizePixel = 0
+        title.Size = UDim2.new(1, -32, 0, 28)
+        title.Position = UDim2.new(0, 10, 0, 8)
+        title.Font = Enum.Font.Code
+        title.TextColor3 = Color3.new(1, 1, 1)
+        title.TextSize = 18
+        title.ZIndex = 1003
+        title.TextXAlignment = Enum.TextXAlignment.Left
+        title.Parent = inner
+        refs.autoAntiTitle = title
+
+        local close = Instance.new("TextButton")
+        close.Size = UDim2.new(0, 22, 0, 22)
+        close.Position = UDim2.new(1, -28, 0, 10)
+        close.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        close.BackgroundTransparency = 0.1
+        close.BorderSizePixel = 0
+        close.Font = Enum.Font.Code
+        close.TextSize = 18
+        close.TextColor3 = Color3.new(1, 1, 1)
+        close.AutoButtonColor = false
+        close.Text = "×"
+        close.ZIndex = 1004
+        close.Parent = inner
+        local cc = Instance.new("UICorner")
+        cc.CornerRadius = UDim.new(0, 6)
+        cc.Parent = close
+        close.Activated:Connect(function()
+            if refs.autoAntiOverlay then
+                refs.autoAntiOverlay:Destroy()
+                refs.autoAntiOverlay = nil
+            end
+        end)
+
+        local btnFrame = Instance.new("Frame")
+        btnFrame.BackgroundTransparency = 1
+        btnFrame.BorderSizePixel = 0
+        btnFrame.Size = UDim2.new(1, -20, 0, 100)
+        btnFrame.Position = UDim2.new(0, 10, 0, 46)
+        btnFrame.ZIndex = 1003
+        btnFrame.Parent = inner
+
+        local list2 = Instance.new("UIListLayout")
+        list2.FillDirection = Enum.FillDirection.Vertical
+        list2.Padding = UDim.new(0, 8)
+        list2.SortOrder = Enum.SortOrder.LayoutOrder
+        list2.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        list2.Parent = btnFrame
+
+        local function mk()
+            local b = Instance.new("TextButton")
+            b.Size = UDim2.new(1, 0, 0, 26)
+            b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            b.BackgroundTransparency = 0.1
+            b.BorderSizePixel = 0
+            b.Font = Enum.Font.Code
+            b.TextSize = 14
+            b.TextColor3 = Color3.new(1, 1, 1)
+            b.AutoButtonColor = false
+            b.ZIndex = 1004
+            b.Parent = btnFrame
+            local c2 = Instance.new("UICorner")
+            c2.CornerRadius = UDim.new(0, 6)
+            c2.Parent = b
+            return b
+        end
+
+        local v = mk()
+        local a = mk()
+        local f = mk()
+        refs.autoAntiVoid = v
+        refs.autoAntiAfk = a
+        refs.autoAntiFling = f
+
+        v.Activated:Connect(function()
+            gg.LemeGUIV2_AutoAntiToggleBit(st, refs, 1)
+        end)
+        a.Activated:Connect(function()
+            gg.LemeGUIV2_AutoAntiToggleBit(st, refs, 2)
+        end)
+        f.Activated:Connect(function()
+            gg.LemeGUIV2_AutoAntiToggleBit(st, refs, 4)
+        end)
+
+        gg.LemeGUIV2_AutoAntiRefreshUI(refs, st)
+        gg.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
+    end
+
+    gg.LemeGUIV2_OpenAutoAntiDialog = function(refs, st, gui)
+        gg.LemeGUIV2_AutoAntiEnsureUI(refs, st, gui)
+        if refs and refs.autoAntiOverlay then
+            refs.autoAntiOverlay.Visible = true
+        end
+        gg.LemeGUIV2_AutoAntiRefreshUI(refs, st)
+        gg.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
+    end
 end
+
 
 
 local function Start()
@@ -718,6 +837,7 @@ local function Start()
     createButton(refs.antiGroup, "Anti Void", "奈落耐性", 1, "antiVoidBtn", true)
     createButton(refs.antiGroup, "Anti AFK", "放置耐性", 2, "antiAfkBtn", true)
     createButton(refs.antiGroup, "Anti Fling", "吹き飛ばし耐性", 3, "antiFlingBtn", true)
+    createButton(refs.antiGroup, "Auto Anti", "自動耐性", 4, "autoAntiBtn", false)
 
     createButton(refs.humanoidGroup, "Kill Self", "自殺", 1, "killSelfBtn", false)
     createButton(refs.humanoidGroup, "Loop Kill", "自殺ループ", 2, "loopKillBtn", true)
@@ -912,6 +1032,7 @@ snowFogSaved = nil,
         antiVoidSaved = ws.FallenPartsDestroyHeight,
         antiFlingOn = false,
         antiFlingSaved = {},
+        autoAntiMask = 0,
         touchFlingOn = false,
         flyJumpOn = false,
         sitFlyOn = true,
@@ -999,6 +1120,11 @@ snowFogSaved = nil,
         resetCamLoopOn = false,
         language = "en",
     }
+
+
+    if type(g.LemeGUIV2_AutoAntiLoad) == "function" then
+        st.autoAntiMask = g.LemeGUIV2_AutoAntiLoad()
+    end
 
     
     if type(g.LemeGUIV2_SnowCloudyInit) == "function" then
@@ -1312,6 +1438,12 @@ local hoverAlign, hoverOri, hoverAtt, hoverOriAtt
             refs.smartResetTrigBtn.Text = st.language == "jp"
                 and ("トリガーキー [" .. resetKeyName .. "]")
                 or ("Trigger [" .. resetKeyName .. "]")
+        end
+        if type(g.LemeGUIV2_AutoAntiUpdateBtn) == "function" then
+            g.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
+        end
+        if type(g.LemeGUIV2_AutoAntiRefreshUI) == "function" then
+            g.LemeGUIV2_AutoAntiRefreshUI(refs, st)
         end
         updFlingTargetDisplay()
     end
@@ -3264,7 +3396,13 @@ if st.fullBrightLoopOn then
         body = body:gsub("^%s+", ""):gsub("%s+$", "")
         if body == "" then
             st.flingTarget = nil
-            updFlingTargetDisplay()
+            if type(g.LemeGUIV2_AutoAntiUpdateBtn) == "function" then
+            g.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
+        end
+        if type(g.LemeGUIV2_AutoAntiRefreshUI) == "function" then
+            g.LemeGUIV2_AutoAntiRefreshUI(refs, st)
+        end
+        updFlingTargetDisplay()
             return
         end
         local lower = string.lower(body)
@@ -3289,6 +3427,12 @@ if st.fullBrightLoopOn then
             end
         end
         st.flingTarget = target
+        if type(g.LemeGUIV2_AutoAntiUpdateBtn) == "function" then
+            g.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
+        end
+        if type(g.LemeGUIV2_AutoAntiRefreshUI) == "function" then
+            g.LemeGUIV2_AutoAntiRefreshUI(refs, st)
+        end
         updFlingTargetDisplay()
     end
 
@@ -3616,6 +3760,18 @@ if st.fullBrightLoopOn then
         if destroyed then
             return
         end
+        local am = st.autoAntiMask
+        if am and am ~= 0 then
+            if bit32.band(am, 1) ~= 0 and not st.antiVoidOn then
+                toggleAntiVoid()
+            end
+            if bit32.band(am, 2) ~= 0 and not st.antiAfkOn then
+                toggleAntiAfk()
+            end
+            if bit32.band(am, 4) ~= 0 and not st.antiFlingOn then
+                toggleAntiFling()
+            end
+        end
         updateAntiVoid()
         updateAntiFling()
         updateStatus(dt)
@@ -3807,7 +3963,13 @@ if st.fullBrightLoopOn then
     addConn(P.PlayerRemoving:Connect(function(pl)
         if st.flingTarget == pl then
             st.flingTarget = nil
-            updFlingTargetDisplay()
+            if type(g.LemeGUIV2_AutoAntiUpdateBtn) == "function" then
+            g.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
+        end
+        if type(g.LemeGUIV2_AutoAntiRefreshUI) == "function" then
+            g.LemeGUIV2_AutoAntiRefreshUI(refs, st)
+        end
+        updFlingTargetDisplay()
         end
     end))
 
@@ -3887,6 +4049,15 @@ if st.fullBrightLoopOn then
             return
         end
         toggleAntiFling()
+    end)
+
+    refs.autoAntiBtn.Activated:Connect(function()
+        if destroyed then
+            return
+        end
+        if type(g.LemeGUIV2_OpenAutoAntiDialog) == "function" then
+            g.LemeGUIV2_OpenAutoAntiDialog(refs, st, gui)
+        end
     end)
 
     refs.touchFlingBtn.Activated:Connect(function()
