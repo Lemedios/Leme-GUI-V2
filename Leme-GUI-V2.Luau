@@ -235,6 +235,39 @@ end
 
 
 
+
+do
+    local gg = typeof(getgenv) == "function" and getgenv() or _G
+    if type(gg.LemeGUIV2_LangFile) ~= "string" then
+        gg.LemeGUIV2_LangFile = "LemeGUIV2_Language.txt"
+    end
+    if type(gg.LemeGUIV2_LangLoad) ~= "function" then
+        gg.LemeGUIV2_LangLoad = function()
+            local ok, data = pcall(function()
+                return readfile(gg.LemeGUIV2_LangFile)
+            end)
+            if ok and type(data) == "string" then
+                data = data:gsub("%s+", "")
+                if data == "jp" or data == "en" then
+                    return data
+                end
+            end
+            return nil
+        end
+    end
+    if type(gg.LemeGUIV2_LangSave) ~= "function" then
+        gg.LemeGUIV2_LangSave = function(lang)
+            if lang ~= "jp" and lang ~= "en" then
+                return
+            end
+            pcall(function()
+                writefile(gg.LemeGUIV2_LangFile, lang)
+            end)
+        end
+    end
+end
+
+
 local function Start()
     if g.LemeGUIV2 and type(g.LemeGUIV2) == "table" and type(g.LemeGUIV2.D) == "function" then
         pcall(g.LemeGUIV2.D)
@@ -1028,7 +1061,7 @@ snowFogSaved = nil,
         tpSavedWalkSpeed = nil,
         anchorOn = false,
         anchorData = nil,
-        antiVoidOn = true,
+        antiVoidOn = false,
         antiVoidSaved = ws.FallenPartsDestroyHeight,
         antiFlingOn = false,
         antiFlingSaved = {},
@@ -1120,6 +1153,14 @@ snowFogSaved = nil,
         resetCamLoopOn = false,
         language = "en",
     }
+
+
+    if type(g.LemeGUIV2_LangLoad) == "function" then
+        local lg = g.LemeGUIV2_LangLoad()
+        if lg then
+            st.language = lg
+        end
+    end
 
 
     if type(g.LemeGUIV2_AutoAntiLoad) == "function" then
@@ -4903,6 +4944,9 @@ refs.snowBtn.Activated:Connect(function()
 
         local function selectLang(code)
             st.language = code
+            if type(g.LemeGUIV2_LangSave) == "function" then
+                g.LemeGUIV2_LangSave(code)
+            end
             applyLanguage()
             refreshSel()
         end
