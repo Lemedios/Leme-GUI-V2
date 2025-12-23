@@ -1,5958 +1,10000 @@
-local g = typeof(getgenv) == "function" and getgenv() or _G
-
-do
-    local gg = typeof(getgenv) == "function" and getgenv() or _G
-    local fn = gg.LemeGUIV2_AutoAntiFile
-    if type(fn) ~= "string" then
-        fn = "LemeGUIV2_AutoAnti.txt"
-        gg.LemeGUIV2_AutoAntiFile = fn
-    end
-
-    gg.LemeGUIV2_AutoAntiLoad = function()
-        local ok, data = pcall(function()
-            return readfile(fn)
-        end)
-        local n = 0
-        if ok and type(data) == "string" then
-            n = tonumber(data) or 0
-        end
-        n = math.floor(tonumber(n) or 0)
-        if n < 0 then
-            n = 0
-        elseif n > 7 then
-            n = 7
-        end
-        return n
-    end
-
-    gg.LemeGUIV2_AutoAntiSave = function(mask)
-        local n = math.floor(tonumber(mask) or 0)
-        if n < 0 then
-            n = 0
-        elseif n > 7 then
-            n = 7
-        end
-        pcall(function()
-            writefile(fn, tostring(n))
-        end)
-    end
-
-    gg.LemeGUIV2_AutoAntiUpdateBtn = function(refs, st)
-        local b = refs and refs.autoAntiBtn
-        if not b or not st then
-            return
-        end
-        b.Text = st.language == "jp" and "自動耐性" or "Auto Anti"
-    end
-
-    gg.LemeGUIV2_AutoAntiRefreshUI = function(refs, st)
-        if not refs or not st then
-            return
-        end
-        local overlay = refs.autoAntiOverlay
-        if not overlay or not overlay.Parent then
-            return
-        end
-        local m = math.floor(tonumber(st.autoAntiMask) or 0)
-        if m < 0 then
-            m = 0
-        elseif m > 7 then
-            m = 7
-        end
-        if refs.autoAntiTitle then
-            refs.autoAntiTitle.Text = st.language == "jp" and "自動耐性を選択" or "Select Auto Anti"
-        end
-        if refs.autoAntiVoid then
-            refs.autoAntiVoid.Text = st.language == "jp" and "奈落耐性" or "Anti Void"
-            refs.autoAntiVoid.BackgroundColor3 = bit32.band(m, 1) ~= 0 and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
-        end
-        if refs.autoAntiAfk then
-            refs.autoAntiAfk.Text = st.language == "jp" and "放置耐性" or "Anti AFK"
-            refs.autoAntiAfk.BackgroundColor3 = bit32.band(m, 2) ~= 0 and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
-        end
-        if refs.autoAntiFling then
-            refs.autoAntiFling.Text = st.language == "jp" and "吹き飛ばし耐性" or "Anti Fling"
-            refs.autoAntiFling.BackgroundColor3 = bit32.band(m, 4) ~= 0 and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
-        end
-    end
-
-    gg.LemeGUIV2_AutoAntiToggleBit = function(st, refs, bit)
-        local m = math.floor(tonumber(st and st.autoAntiMask) or 0)
-        if m < 0 then
-            m = 0
-        elseif m > 7 then
-            m = 7
-        end
-        if bit32.band(m, bit) ~= 0 then
-            m = bit32.band(m, bit32.bnot(bit))
-        else
-            m = bit32.bor(m, bit)
-        end
-        if st then
-            st.autoAntiMask = m
-        end
-        gg.LemeGUIV2_AutoAntiSave(m)
-        gg.LemeGUIV2_AutoAntiRefreshUI(refs, st)
-        gg.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
-    end
-
-    gg.LemeGUIV2_AutoAntiEnsureUI = function(refs, st, gui)
-        if not refs or not st or not gui then
-            return
-        end
-        if refs.autoAntiOverlay then
-            return
-        end
-
-        local overlay = Instance.new("Frame")
-        overlay.Name = "AutoAntiOverlay"
-        overlay.Size = UDim2.new(1, 0, 1, 0)
-        overlay.Position = UDim2.new(0, 0, 0, 0)
-        overlay.BackgroundColor3 = Color3.new(0, 0, 0)
-        overlay.BackgroundTransparency = 0.4
-        overlay.BorderSizePixel = 0
-        overlay.ZIndex = 1001
-        overlay.Parent = gui
-        refs.autoAntiOverlay = overlay
-
-        local inner = Instance.new("Frame")
-        inner.Size = UDim2.new(0, 240, 0, 160)
-        inner.AnchorPoint = Vector2.new(0.5, 0.5)
-        inner.Position = UDim2.new(0.5, 0, 0.5, 0)
-        inner.BackgroundColor3 = refs.main.BackgroundColor3
-        inner.BackgroundTransparency = refs.main.BackgroundTransparency
-        inner.BorderSizePixel = 0
-        inner.ZIndex = 1002
-        inner.Parent = overlay
-
-        local ic = Instance.new("UICorner")
-        ic.CornerRadius = UDim.new(0, 10)
-        ic.Parent = inner
-
-        local title = Instance.new("TextLabel")
-        title.BackgroundTransparency = 1
-        title.BorderSizePixel = 0
-        title.Size = UDim2.new(1, -32, 0, 28)
-        title.Position = UDim2.new(0, 10, 0, 8)
-        title.Font = Enum.Font.Code
-        title.TextColor3 = Color3.new(1, 1, 1)
-        title.TextSize = 18
-        title.ZIndex = 1003
-        title.TextXAlignment = Enum.TextXAlignment.Left
-        title.Parent = inner
-        refs.autoAntiTitle = title
-
-        local close = Instance.new("TextButton")
-        close.Size = UDim2.new(0, 22, 0, 22)
-        close.Position = UDim2.new(1, -28, 0, 10)
-        close.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        close.BackgroundTransparency = 0.1
-        close.BorderSizePixel = 0
-        close.Font = Enum.Font.Code
-        close.TextSize = 18
-        close.TextColor3 = Color3.new(1, 1, 1)
-        close.AutoButtonColor = false
-        close.Text = "×"
-        close.ZIndex = 1004
-        close.Parent = inner
-        local cc = Instance.new("UICorner")
-        cc.CornerRadius = UDim.new(0, 6)
-        cc.Parent = close
-        close.Activated:Connect(function()
-            if refs.autoAntiOverlay then
-                refs.autoAntiOverlay:Destroy()
-                refs.autoAntiOverlay = nil
-            end
-        end)
-
-        local btnFrame = Instance.new("Frame")
-        btnFrame.BackgroundTransparency = 1
-        btnFrame.BorderSizePixel = 0
-        btnFrame.Size = UDim2.new(1, -20, 0, 100)
-        btnFrame.Position = UDim2.new(0, 10, 0, 46)
-        btnFrame.ZIndex = 1003
-        btnFrame.Parent = inner
-
-        local list2 = Instance.new("UIListLayout")
-        list2.FillDirection = Enum.FillDirection.Vertical
-        list2.Padding = UDim.new(0, 8)
-        list2.SortOrder = Enum.SortOrder.LayoutOrder
-        list2.HorizontalAlignment = Enum.HorizontalAlignment.Center
-        list2.Parent = btnFrame
-
-        local function mk()
-            local b = Instance.new("TextButton")
-            b.Size = UDim2.new(1, 0, 0, 26)
-            b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            b.BackgroundTransparency = 0.1
-            b.BorderSizePixel = 0
-            b.Font = Enum.Font.Code
-            b.TextSize = 14
-            b.TextColor3 = Color3.new(1, 1, 1)
-            b.AutoButtonColor = false
-            b.ZIndex = 1004
-            b.Parent = btnFrame
-            local c2 = Instance.new("UICorner")
-            c2.CornerRadius = UDim.new(0, 6)
-            c2.Parent = b
-            return b
-        end
-
-        local v = mk()
-        local a = mk()
-        local f = mk()
-        refs.autoAntiVoid = v
-        refs.autoAntiAfk = a
-        refs.autoAntiFling = f
-
-        v.Activated:Connect(function()
-            gg.LemeGUIV2_AutoAntiToggleBit(st, refs, 1)
-        end)
-        a.Activated:Connect(function()
-            gg.LemeGUIV2_AutoAntiToggleBit(st, refs, 2)
-        end)
-        f.Activated:Connect(function()
-            gg.LemeGUIV2_AutoAntiToggleBit(st, refs, 4)
-        end)
-
-        gg.LemeGUIV2_AutoAntiRefreshUI(refs, st)
-        gg.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
-    end
-
-    gg.LemeGUIV2_OpenAutoAntiDialog = function(refs, st, gui)
-        gg.LemeGUIV2_AutoAntiEnsureUI(refs, st, gui)
-        if refs and refs.autoAntiOverlay then
-            refs.autoAntiOverlay.Visible = true
-        end
-        gg.LemeGUIV2_AutoAntiRefreshUI(refs, st)
-        gg.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
-    end
-end
-
-do
-    local gg = typeof(getgenv) == "function" and getgenv() or _G
-    if type(gg.LemeGUIV2_LangFile) ~= "string" then
-        gg.LemeGUIV2_LangFile = "LemeGUIV2_Language.txt"
-    end
-    if type(gg.LemeGUIV2_LangLoad) ~= "function" then
-        gg.LemeGUIV2_LangLoad = function()
-            local ok, data = pcall(function()
-                return readfile(gg.LemeGUIV2_LangFile)
-            end)
-            if ok and type(data) == "string" then
-                data = data:gsub("%s+", "")
-                if data == "jp" or data == "en" then
-                    return data
-                end
-            end
-            return nil
-        end
-    end
-    if type(gg.LemeGUIV2_LangSave) ~= "function" then
-        gg.LemeGUIV2_LangSave = function(lang)
-            if lang ~= "jp" and lang ~= "en" then
-                return
-            end
-            pcall(function()
-                writefile(gg.LemeGUIV2_LangFile, lang)
-            end)
-        end
-    end
-end
-
-local function Start()
-    if g.LemeGUIV2 and type(g.LemeGUIV2) == "table" and type(g.LemeGUIV2.D) == "function" then
-        pcall(g.LemeGUIV2.D)
-    end
-
-    local C = {}
-    g.LemeGUIV2 = C
-
-    local function S(o, n)
-        return o:GetService(n)
-    end
-
-    local P = S(game, "Players")
-    local U = S(game, "UserInputService")
-    local R = S(game, "RunService")
-    local T = S(game, "TeleportService")
-    local SG = S(game, "StarterGui")
-    local ST = S(game, "Stats")
-    local L = S(game, "Lighting")
-    local ws = workspace
-    local lp = P.LocalPlayer
-    while not lp do
-        pcall(function()
-            P:GetPropertyChangedSignal("LocalPlayer"):Wait()
-        end)
-        lp = P.LocalPlayer
-        if not lp then
-            wait()
-        end
-    end
-
-    local uiParent
-
-    local ok, res = pcall(function()
-        if typeof(gethui) == "function" then
-            return gethui()
-        end
-    end)
-    if ok and res then
-        uiParent = res
-    end
-
-    if not uiParent then
-        local ok2, res2 = pcall(function()
-            if typeof(get_hidden_gui) == "function" then
-                return get_hidden_gui()
-            end
-        end)
-        if ok2 and res2 then
-            uiParent = res2
-        end
-    end
-
-    if not uiParent then
-        local ok3, res3 = pcall(function()
-            return game:GetService("CoreGui")
-        end)
-        if ok3 and res3 then
-            uiParent = res3
-        end
-    end
-
-    if not uiParent then
-        local pg = lp:FindFirstChildOfClass("PlayerGui") or lp:FindFirstChild("PlayerGui")
-        if not pg then
-            pg = lp:WaitForChild("PlayerGui")
-        end
-        uiParent = pg
-    end
-
-    if not uiParent then
-        return
-    end
-
-    local currentCam = ws.CurrentCamera
-    local defaultFov = currentCam and currentCam.FieldOfView or 70
-
-    local defaultWalkSpeed = 16
-    do
-        local c = lp.Character
-        if c then
-            local hum = c:FindFirstChildWhichIsA("Humanoid")
-            if hum then
-                defaultWalkSpeed = hum.WalkSpeed or defaultWalkSpeed
-            end
-        end
-    end
-
-    local defaultJump = 50
-    do
-        local c = lp.Character
-        if c then
-            local hum = c:FindFirstChildWhichIsA("Humanoid")
-            if hum then
-                if hum.UseJumpPower ~= false then
-                    defaultJump = hum.JumpPower or defaultJump
-                else
-                    defaultJump = hum.JumpHeight or defaultJump
-                end
-            end
-        end
-    end
-
-    local defaultMaxZoom = lp.CameraMaxZoomDistance or 128
-    local defaultMinZoom = lp.CameraMinZoomDistance or 0.5
-    local defaultFogColor = L.FogColor or Color3.new(1, 1, 1)
-    local defaultFogStart = L.FogStart or 0
-    local defaultFogEnd = L.FogEnd or 1000
-    local defaultFogColorStr = string.format(
-        "%d %d %d",
-        math.floor(defaultFogColor.R * 255 + 0.5),
-        math.floor(defaultFogColor.G * 255 + 0.5),
-        math.floor(defaultFogColor.B * 255 + 0.5)
-    )
-    local defaultGrav = ws.Gravity
-
-    local function roundInit(v)
-        local sign = 1
-        if v < 0 then
-            sign = -1
-            v = -v
-        end
-        local n3 = v * 1000
-        local n3i = math.floor(n3 + 1e-7)
-        local rem = n3i % 10
-        local base = (n3i - rem) / 10
-        local dec2
-        if rem > 5 then
-            dec2 = base + 1
-        else
-            dec2 = base
-        end
-        local res = (dec2 / 100) * sign
-        return res
-    end
-
-    local function formatInit(v)
-        local s = string.format("%.3f", v)
-        s = s:gsub("0+$", "")
-        s = s:gsub("%.$", "")
-        return s
-    end
-
-    local initFlySpeedVal = roundInit(100)
-    local initFlySpeedStr = formatInit(initFlySpeedVal)
-    local initTpSpeedVal = roundInit(50)
-    local initTpSpeedStr = formatInit(initTpSpeedVal)
-    local initFovVal = roundInit(defaultFov)
-    local initFovStr = formatInit(initFovVal)
-    local initWalkVal = roundInit(defaultWalkSpeed)
-    local initWalkStr = formatInit(initWalkVal)
-    local initJumpVal = roundInit(defaultJump)
-    local initJumpStr = formatInit(initJumpVal)
-    local initMaxZoomVal = roundInit(defaultMaxZoom)
-    local initMaxZoomStr = formatInit(initMaxZoomVal)
-    local initMinZoomVal = roundInit(defaultMinZoom)
-    local initMinZoomStr = formatInit(initMinZoomVal)
-    local initFogStartVal = roundInit(defaultFogStart)
-    local initFogStartStr = formatInit(initFogStartVal)
-    local initFogEndVal = roundInit(defaultFogEnd)
-    local initFogEndStr = formatInit(initFogEndVal)
-    local initGravVal = roundInit(defaultGrav)
-    local initGravStr = formatInit(initGravVal)
-
-    local destroyed = false
-    local conns = {}
-    local refs = {}
-    local allButtons = {}
-    local api = { buttonActions = {} }
-    local pressed = getgenv().LemeGUIV2_Pressed
-    if type(pressed) ~= "table" then
-        pressed = {}
-        getgenv().LemeGUIV2_Pressed = pressed
-    end
-    local allGroupLabels = {}
-    local allInputs = {}
-    local allDisplays = {}
-
-    local function addConn(cn)
-        if cn then
-            conns[#conns + 1] = cn
-        end
-        return cn
-    end
-
-    local function playOverlay(gui)
-        local TS = S(game, "TweenService")
-        local f = Instance.new("Frame")
-        f.Name = "LemeOverlay"
-        f.Size = UDim2.new(1, 0, 1, 0)
-        f.Position = UDim2.new(0, 0, 0, 0)
-        f.BackgroundColor3 = Color3.new(0, 0, 0)
-        f.BackgroundTransparency = 1
-        f.BorderSizePixel = 0
-        f.ZIndex = 1000
-        f.Parent = gui
-
-        local lbl = Instance.new("TextLabel")
-        lbl.BackgroundTransparency = 1
-        lbl.BorderSizePixel = 0
-        lbl.AnchorPoint = Vector2.new(0.5, 0.5)
-        lbl.Position = UDim2.new(0.5, 0, 0.5, 0)
-        lbl.Size = UDim2.new(0, 300, 0, 60)
-        lbl.Font = Enum.Font.Code
-        lbl.Text = "Leme GUI V2"
-        lbl.TextColor3 = Color3.new(1, 1, 1)
-        lbl.TextSize = 28
-        lbl.TextTransparency = 1
-        lbl.ZIndex = f.ZIndex + 1
-        lbl.Parent = f
-
-        local function safeDestroy()
-            if lbl and lbl.Parent then
-                pcall(function()
-                    lbl:Destroy()
-                end)
-            end
-            if f and f.Parent then
-                pcall(function()
-                    f:Destroy()
-                end)
-            end
-        end
-
-        delay(6, safeDestroy)
-
-        pcall(function()
-            TS:Create(f, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 0.5 }):Play()
-        end)
-
-        delay(0.3, function()
-            if not lbl or not lbl.Parent then
-                return
-            end
-            pcall(function()
-                TS:Create(lbl, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 0 }):Play()
-            end)
-        end)
-
-        delay(1.6, function()
-            if not lbl or not lbl.Parent then
-                return
-            end
-            pcall(function()
-                TS:Create(lbl, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 1 }):Play()
-            end)
-        end)
-
-        delay(1.9, function()
-            if lbl and lbl.Parent then
-                pcall(function()
-                    lbl:Destroy()
-                end)
-            end
-            if not f or not f.Parent then
-                return
-            end
-            pcall(function()
-                TS:Create(f, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 1 }):Play()
-            end)
-        end)
-
-        delay(2.25, safeDestroy)
-    end
-
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "Leme GUI V2"
-    gui.DisplayOrder = 2147483647
-    gui.IgnoreGuiInset = true
-    gui.ResetOnSpawn = false
-    gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    gui.Parent = uiParent
-    refs.loadingBlock = Instance.new("Frame")
-    refs.loadingBlock.Name = "LoadingBlock"
-    refs.loadingBlock.Size = UDim2.new(1, 0, 1, 0)
-    refs.loadingBlock.Position = UDim2.new(0, 0, 0, 0)
-    refs.loadingBlock.BackgroundColor3 = Color3.new(0, 0, 0)
-    refs.loadingBlock.BackgroundTransparency = 0.35
-    refs.loadingBlock.BorderSizePixel = 0
-    refs.loadingBlock.ZIndex = 2000
-    refs.loadingBlock.Active = false
-    refs.loadingBlock.Parent = gui
-
-    refs.loadingBlock.Visible = false
-    refs.loadingLabel = Instance.new("TextLabel")
-    refs.loadingLabel.Name = "LoadingLabel"
-    refs.loadingLabel.Size = UDim2.new(1, -20, 0, 30)
-    refs.loadingLabel.Position = UDim2.new(0, 10, 0.5, -15)
-    refs.loadingLabel.BackgroundTransparency = 1
-    refs.loadingLabel.BorderSizePixel = 0
-    refs.loadingLabel.Font = Enum.Font.Code
-    refs.loadingLabel.TextColor3 = Color3.new(1, 1, 1)
-    refs.loadingLabel.TextSize = 16
-    refs.loadingLabel.Text = "Loading Stucked. Please wait..."
-    refs.loadingLabel.Active = false
-    refs.loadingLabel.ZIndex = 2001
-    refs.loadingLabel.Parent = refs.loadingBlock
-
-    delay(1.2, function()
-        if refs.loadingBlock and refs.loadingBlock.Parent then
-            refs.loadingBlock.Visible = true
-        end
-    end)
-
-    spawn(function()
-        playOverlay(gui)
-    end)
-    local FRAME_W = 420
-    local FRAME_H = 280
-    local MAIN_MARGIN = 10
-    local BTN_H = 30
-    local TOGGLE_SIZE = 56
-
-    refs.main = Instance.new("Frame")
-    refs.main.Name = "Main"
-    refs.main.AnchorPoint = Vector2.new(0.5, 1)
-    refs.main.Size = UDim2.new(0, FRAME_W, 0, FRAME_H)
-    refs.main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    refs.main.BackgroundTransparency = 0.2
-    refs.main.BorderSizePixel = 0
-    refs.main.ZIndex = 10
-    refs.main.Parent = gui
-
-    local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 12)
-    mainCorner.Parent = refs.main
-
-    refs.title = Instance.new("TextLabel")
-    refs.title.BackgroundTransparency = 1
-    refs.title.BorderSizePixel = 0
-    refs.title.Position = UDim2.new(0, 12, 0, 8)
-    refs.title.Size = UDim2.new(1, -24, 0, 24)
-    refs.title.Font = Enum.Font.Code
-    refs.title.Text = "Leme GUI V2"
-    refs.title.TextColor3 = Color3.new(1, 1, 1)
-    refs.title.TextSize = 20
-    refs.title.TextXAlignment = Enum.TextXAlignment.Left
-    refs.title.ZIndex = 11
-    refs.title.Parent = refs.main
-
-    refs.scroll = Instance.new("ScrollingFrame")
-    refs.scroll.BackgroundTransparency = 1
-    refs.scroll.BorderSizePixel = 0
-    refs.scroll.Position = UDim2.new(0, 12, 0, 40)
-    refs.scroll.Size = UDim2.new(1, -24, 1, -52)
-    refs.scroll.ZIndex = 11
-    refs.scroll.ScrollBarThickness = 4
-    refs.scroll.ScrollingDirection = Enum.ScrollingDirection.Y
-    refs.scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-    refs.scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    refs.scroll.Parent = refs.main
-
-    local list = Instance.new("UIListLayout")
-    list.FillDirection = Enum.FillDirection.Vertical
-    list.SortOrder = Enum.SortOrder.LayoutOrder
-    list.Padding = UDim.new(0, 8)
-    list.Parent = refs.scroll
-
-    local function createGroup(nameEn, nameJp, order, key)
-        local gFrame = Instance.new("Frame")
-        gFrame.Name = key .. "Group"
-        gFrame.BackgroundTransparency = 1
-        gFrame.BorderSizePixel = 0
-        gFrame.Size = UDim2.new(1, 0, 0, 40)
-        gFrame.AutomaticSize = Enum.AutomaticSize.Y
-        gFrame.LayoutOrder = order
-        gFrame.ZIndex = 11
-        gFrame.Parent = refs.scroll
-
-        local lbl = Instance.new("TextLabel")
-        lbl.BackgroundTransparency = 1
-        lbl.BorderSizePixel = 0
-        lbl.Size = UDim2.new(1, 0, 0, 18)
-        lbl.Font = Enum.Font.Code
-        lbl.Text = nameEn
-        lbl.TextColor3 = Color3.new(1, 1, 1)
-        lbl.TextSize = 18
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.ZIndex = 12
-        lbl.Parent = gFrame
-        lbl:SetAttribute("TextEn", nameEn)
-        lbl:SetAttribute("TextJp", nameJp)
-        table.insert(allGroupLabels, lbl)
-        refs["groupLabel_" .. key] = lbl
-
-        local btnFrame = Instance.new("Frame")
-        btnFrame.Name = "Buttons"
-        btnFrame.BackgroundTransparency = 1
-        btnFrame.BorderSizePixel = 0
-        btnFrame.Position = UDim2.new(0, 0, 0, 22)
-        btnFrame.Size = UDim2.new(1, 0, 0, 32)
-        btnFrame.AutomaticSize = Enum.AutomaticSize.Y
-        btnFrame.ZIndex = 11
-        btnFrame.Parent = gFrame
-
-        local grid = Instance.new("UIGridLayout")
-        grid.CellSize = UDim2.new(0, 140, 0, 28)
-        grid.CellPadding = UDim2.new(0, 8, 0, 6)
-        grid.FillDirection = Enum.FillDirection.Horizontal
-        grid.SortOrder = Enum.SortOrder.LayoutOrder
-        grid.Parent = btnFrame
-
-        return btnFrame
-    end
-
-    local function createButton(parent, textEn, textJp, order, key, isToggle)
-        local b = Instance.new("TextButton")
-        b.Name = key
-        pcall(function()
-            b:SetAttribute("CfgGroup", string.lower(group.Name or ""))
-        end)
-        b.BackgroundColor3 = refs.main.BackgroundColor3
-        b.BackgroundTransparency = refs.main.BackgroundTransparency
-        b.BorderSizePixel = 0
-        b.AutoButtonColor = false
-        b.Font = Enum.Font.Code
-        b.TextColor3 = Color3.new(1, 1, 1)
-        b.TextSize = 14
-        b.ZIndex = 12
-        b.LayoutOrder = order
-        b.Parent = parent
-        b:SetAttribute("TextEn", textEn)
-        b:SetAttribute("TextJp", textJp)
-        b:SetAttribute("IsToggle", isToggle and true or false)
-        b.Text = textEn
-        local c = Instance.new("UICorner")
-        c.CornerRadius = UDim.new(0, 6)
-        c.Parent = b
-        refs[key] = b
-        table.insert(allButtons, b)
-        if not (isToggle and true or false) then
-            b.Activated:Connect(function()
-                pressed[key] = true
-            end)
-        end
-        return b
-    end
-
-    local function createLabeledInput(parent, labelEn, labelJp, order, defaultValue, key)
-        local cell = Instance.new("Frame")
-        cell.Name = key .. "Cell"
-        cell.BackgroundTransparency = 1
-        cell.BorderSizePixel = 0
-        cell.ZIndex = 12
-        cell.LayoutOrder = order
-        cell.ClipsDescendants = false
-        cell.Parent = parent
-
-        local tb = Instance.new("TextBox")
-        tb.Name = key
-        pcall(function()
-            tb:SetAttribute("CfgGroup", string.lower(group.Name or ""))
-        end)
-        tb.BackgroundColor3 = refs.main.BackgroundColor3
-        tb.BackgroundTransparency = refs.main.BackgroundTransparency
-        tb.BorderSizePixel = 0
-        tb.Font = Enum.Font.Code
-        tb.TextColor3 = Color3.new(1, 1, 1)
-        tb.TextSize = 14
-        tb.TextXAlignment = Enum.TextXAlignment.Left
-        tb.ClearTextOnFocus = false
-        tb.ZIndex = 13
-        tb.Size = UDim2.new(1, 0, 1, -4)
-        tb.Position = UDim2.new(0, 0, 0, 2)
-        tb.Parent = cell
-
-        local prefixEn = labelEn .. " "
-        local prefixJp = labelJp .. " "
-        tb:SetAttribute("PrefixEn", prefixEn)
-        tb:SetAttribute("PrefixJp", prefixJp)
-        tb:SetAttribute("Prefix", prefixEn)
-        tb.Text = prefixEn .. tostring(defaultValue)
-
-        local c = Instance.new("UICorner")
-        c.CornerRadius = UDim.new(0, 6)
-        c.Parent = tb
-
-        refs[key] = tb
-        table.insert(allInputs, tb)
-
-        local enforcing = false
-        local function enforce()
-            if enforcing then
-                return
-            end
-            enforcing = true
-            local pf = tb:GetAttribute("Prefix") or ""
-            local tx = tb.Text or ""
-            if #tx < #pf or tx:sub(1, #pf) ~= pf then
-                tx = pf
-            end
-            tb.Text = tx
-            local minCur = #pf + 1
-            local cur = tb.CursorPosition
-            if cur == -1 or cur < minCur then
-                tb.CursorPosition = minCur
-            end
-            enforcing = false
-        end
-
-        tb:GetPropertyChangedSignal("Text"):Connect(enforce)
-
-        tb.Focused:Connect(function()
-            local pf = tb:GetAttribute("Prefix") or ""
-            local minCur = #pf + 1
-            spawn(function()
-                if not tb or not tb.Parent then
-                    return
-                end
-                local tx = tb.Text or ""
-                local cur = #tx + 1
-                if cur < minCur then
-                    cur = minCur
-                end
-                tb.CursorPosition = cur
-            end)
-        end)
-
-        return tb
-    end
-
-    local function createDisplayCell(parent, labelEn, labelJp, order, key)
-        local cell = Instance.new("Frame")
-        cell.Name = key .. "Cell"
-        cell.BackgroundTransparency = 1
-        cell.BorderSizePixel = 0
-        cell.ZIndex = 12
-        cell.LayoutOrder = order
-        cell.Parent = parent
-
-        local lbl = Instance.new("TextLabel")
-        lbl.Name = key
-        lbl.BackgroundColor3 = refs.main.BackgroundColor3
-        lbl.BackgroundTransparency = refs.main.BackgroundTransparency
-        lbl.BorderSizePixel = 0
-        lbl.Font = Enum.Font.Code
-        lbl.TextColor3 = Color3.new(1, 1, 1)
-        lbl.TextSize = 14
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.ZIndex = 13
-        lbl.Size = UDim2.new(1, 0, 1, -4)
-        lbl.Position = UDim2.new(0, 0, 0, 2)
-        lbl.Parent = cell
-        lbl:SetAttribute("LabelEn", labelEn)
-        lbl:SetAttribute("LabelJp", labelJp)
-
-        local c = Instance.new("UICorner")
-        c.CornerRadius = UDim.new(0, 6)
-        c.Parent = lbl
-
-        refs[key] = lbl
-        table.insert(allDisplays, lbl)
-        return lbl
-    end
-
-    refs.flyGroup = createGroup("Fly", "飛行", 1, "Fly")
-    refs.tpWalkGroup = createGroup("TP Walk", "TP歩行", 2, "TPWalk")
-    refs.flingGroup = createGroup("Fling", "吹き飛ばす", 3, "Fling")
-    refs.antiGroup = createGroup("Anti", "耐性", 4, "Anti")
-    refs.humanoidGroup = createGroup("Humanoid", "体", 5, "Humanoid")
-    refs.otherGroup = createGroup("Other", "その他", 6, "Other")
-    refs.shaderGroup = createGroup("Shader", "シェーダー", 6.5, "Shader")
-    refs.fovGroup = createGroup("FOV", "視野", 7, "FOV")
-    refs.speedGroup = createGroup("Speed", "歩く速度", 8, "SpeedGroup")
-    refs.jumpGroup = createGroup("Jump", "ジャンプ力", 9, "Jump")
-    refs.gravGroup = createGroup("Gravity", "重力", 10, "Gravity")
-    refs.maxZoomGroup = createGroup("MaxZoom", "最大ズーム", 11, "MaxZoom")
-    refs.minZoomGroup = createGroup("MinZoom", "最小ズーム", 12, "MinZoom")
-    refs.fogGroup = createGroup("Fog", "霧", 13, "Fog")
-    refs.fbGroup = createGroup("Full Bright", "フルブライト", 14, "FullBright")
-    refs.desyncGroup = createGroup("Desync", "非同期", 15, "Desync")
-    refs.desyncDirGroup = createGroup("Desync Direction", "向きの同期ズレ", 16, "DesyncDirection")
-    refs.teleportGroup = createGroup("Teleport", "テレポート", 17, "Teleport")
-    refs.resetCamGroup = createGroup("Reset Camera", "カメラ初期化", 18, "ResetCamera")
-    refs.bodyTransGroup = createGroup("Body Transparency", "体の透明度", 19, "BodyTransparency")
-    refs.scriptGroup = createGroup("Script", "スクリプト", 99, "Script")
-
-    createButton(refs.flyGroup, "Fly", "飛行", 1, "flyBtn", true)
-    createButton(refs.flyGroup, "Hover", "ホバリング", 2, "hoverBtn", true)
-    createButton(refs.flyGroup, "Velocity", "ベクトル", 3, "velBtn", true)
-    createLabeledInput(refs.flyGroup, "Speed", "速度", 4, initFlySpeedStr, "flySpeedInput")
-    createButton(refs.flyGroup, "Smart Fly", "スマート飛行", 5, "smartFlyBtn", true)
-    createButton(refs.flyGroup, "Trigger", "トリガーキー", 6, "smartFlyTrigBtn", false)
-
-    createButton(refs.flyGroup, "Sit Fly", "座る", 7, "sitFlyBtn", true)
-    createButton(refs.tpWalkGroup, "TP Walk", "TP歩行", 1, "tpWalkBtn", true)
-    createLabeledInput(refs.tpWalkGroup, "Speed", "速度", 2, initTpSpeedStr, "tpWalkSpeedInput")
-
-    createLabeledInput(refs.flingGroup, "Target", "対象", 1, "", "flingTargetInput")
-    createDisplayCell(refs.flingGroup, "Target", "対象", 2, "flingTargetDisplay")
-    createButton(refs.flingGroup, "Fling", "吹き飛ばす", 3, "flingBtn", false)
-    createButton(refs.flingGroup, "Touch Fling", "接触吹き飛ばし", 4, "touchFlingBtn", true)
-
-    createButton(refs.antiGroup, "Anti Void", "奈落耐性", 1, "antiVoidBtn", true)
-    createButton(refs.antiGroup, "Anti AFK", "放置耐性", 2, "antiAfkBtn", true)
-    createButton(refs.antiGroup, "Anti Fling", "吹き飛ばし耐性", 3, "antiFlingBtn", true)
-    createButton(refs.antiGroup, "Auto Anti", "自動耐性", 4, "autoAntiBtn", false)
-
-    createButton(refs.humanoidGroup, "Kill Self", "自殺", 1, "killSelfBtn", false)
-    createButton(refs.humanoidGroup, "Loop Kill", "自殺ループ", 2, "loopKillBtn", true)
-    createButton(refs.humanoidGroup, "No clip", "すり抜け", 3, "noclipBtn", true)
-    createButton(refs.humanoidGroup, "Fly Jump", "無限ジャンプ", 4, "flyJumpBtn", true)
-    createButton(refs.humanoidGroup, "Anchor", "体を固定", 5, "anchorBtn", true)
-    createButton(refs.humanoidGroup, "Smart Reset", "スマートリセット", 6, "smartResetBtn", true)
-    createButton(refs.humanoidGroup, "Trigger", "トリガーキー", 7, "smartResetTrigBtn", false)
-
-    createButton(refs.otherGroup, "Rejoin", "再参加", 1, "rejoinBtn", false)
-    createButton(refs.otherGroup, "ESP", "ESP", 2, "espBtn", true)
-    createButton(refs.otherGroup, "Mini ESP", "ミニESP", 3, "miniEspBtn", true)
-    createButton(refs.otherGroup, "Status", "ステータス", 4, "statusBtn", true)
-    createButton(refs.otherGroup, "Chat", "チャット", 5, "chatBtn", true)
-    createButton(refs.otherGroup, "Instant Prompt", "即時プロンプト", 6, "instantPromptBtn", false)
-createButton(refs.shaderGroup, "Shader", "シェーダー", 1, "shaderBtn", true)
-createButton(refs.shaderGroup, "Snow", "雪", 2, "snowBtn", true)
-
-    createButton(refs.fovGroup, "Set FOV", "視野を設定", 1, "setFovBtn", false)
-    createButton(refs.fovGroup, "Loop Set", "ループ設定", 2, "loopFovBtn", true)
-    createLabeledInput(refs.fovGroup, "Value", "値", 3, initFovStr, "fovInput")
-
-    createButton(refs.speedGroup, "Set Speed", "速度を設定", 1, "setSpeedBtn", false)
-    createButton(refs.speedGroup, "Loop Set", "ループ設定", 2, "loopSpeedBtn", true)
-    createLabeledInput(refs.speedGroup, "Value", "値", 3, initWalkStr, "speedInput")
-
-    createButton(refs.jumpGroup, "Set Jump", "ジャンプを設定", 1, "setJumpBtn", false)
-    createButton(refs.jumpGroup, "Loop Set", "ループ設定", 2, "loopJumpBtn", true)
-    createLabeledInput(refs.jumpGroup, "Value", "値", 3, initJumpStr, "jumpInput")
-
-    createButton(refs.gravGroup, "Set Gravity", "重力を設定", 1, "setGravBtn", false)
-    createButton(refs.gravGroup, "Loop Set", "ループ設定", 2, "loopGravBtn", true)
-    createLabeledInput(refs.gravGroup, "Value", "値", 3, initGravStr, "gravInput")
-
-    createButton(refs.maxZoomGroup, "Set MaxZoom", "最大ズームを設定", 1, "setMaxZoomBtn", false)
-    createButton(refs.maxZoomGroup, "Loop Set", "ループ設定", 2, "loopMaxZoomBtn", true)
-    createLabeledInput(refs.maxZoomGroup, "Value", "値", 3, initMaxZoomStr, "maxZoomInput")
-    createButton(refs.maxZoomGroup, "No MaxZoom", "最大ズームを無効", 4, "noMaxZoomBtn", true)
-
-    createButton(refs.minZoomGroup, "Set MinZoom", "最小ズームを設定", 1, "setMinZoomBtn", false)
-    createButton(refs.minZoomGroup, "Loop Set", "ループ設定", 2, "loopMinZoomBtn", true)
-    createLabeledInput(refs.minZoomGroup, "Value", "値", 3, initMinZoomStr, "minZoomInput")
-
-    createButton(refs.bodyTransGroup, "Set Transparency", "透明度を設定", 1, "setBodyTransBtn", false)
-    createButton(refs.bodyTransGroup, "Loop Set", "ループ設定", 2, "loopBodyTransBtn", true)
-    createLabeledInput(refs.bodyTransGroup, "Value", "値", 3, "0", "bodyTransInput")
-
-    createButton(refs.minZoomGroup, "No MinZoom", "最小ズームを無効", 4, "noMinZoomBtn", true)
-
-    createButton(refs.fogGroup, "No Fog", "霧なし", 1, "noFogBtn", true)
-    createButton(refs.fogGroup, "Set Fog", "霧を設定", 2, "setFogBtn", false)
-    createButton(refs.fogGroup, "Loop Set", "ループ設定", 3, "loopFogBtn", true)
-    createLabeledInput(refs.fogGroup, "FogColor", "霧の色", 4, defaultFogColorStr, "fogColorInput")
-    createLabeledInput(refs.fogGroup, "FogStart", "霧の開始距離", 5, initFogStartStr, "fogStartInput")
-    createLabeledInput(refs.fogGroup, "FogEnd", "霧の終了距離", 6, initFogEndStr, "fogEndInput")
-
-    createButton(refs.fbGroup, "Full Bright", "フルブライト", 1, "fbBtn", false)
-    createButton(refs.fbGroup, "Loop Set", "ループ設定", 2, "loopFbBtn", true)
-
-    local desyncPosTb = createLabeledInput(refs.desyncGroup, "Desync Pos", "非同期座標", 3, "0 0 0", "desyncPosInput")
-    refs.desyncPosCell = desyncPosTb.Parent
-    refs.desyncPosCell.Visible = true
-    createButton(refs.desyncGroup, "Desync", "非同期", 1, "desyncBtn", true)
-    createButton(refs.desyncGroup, "Desync Pos", "非同期座標", 2, "desyncPosBtn", true)
-
-    createButton(refs.desyncDirGroup, "Desync", "同期ズレ", 1, "desyncDirBtn", true)
-    createButton(refs.desyncDirGroup, "Direction", "向き", 2, "desyncDirDirectionBtn", false)
-    createLabeledInput(refs.desyncDirGroup, "Roll", "ロール", 3, 0, "desyncDirRollInput")
-    createLabeledInput(refs.desyncDirGroup, "Pitch", "ピッチ", 4, 0, "desyncDirPitchInput")
-    createLabeledInput(refs.desyncDirGroup, "Yaw", "ヨー", 5, 0, "desyncDirYawInput")
-
-    createButton(refs.resetCamGroup, "Reset Camera", "カメラ初期化", 1, "resetCamBtn", false)
-    createButton(refs.resetCamGroup, "Loop Reset", "ループ初期化", 2, "loopResetCamBtn", true)
-
-    createButton(refs.scriptGroup, "Load IY", "IYスクリプト", 1, "loadIYBtn", false)
-    createButton(refs.scriptGroup, "Load RSpy", "スパイスクリプト", 2, "loadRSpyBtn", false)
-    createButton(refs.scriptGroup, "Load Dex", "エクスプローラースクリプト", 3, "loadDexBtn", false)
-    createButton(refs.scriptGroup, "Load ShiftLock", "シフトロックスクリプト", 4, "loadShiftLockBtn", false)
-    createButton(refs.scriptGroup, "Unload", "スクリプトを削除", 5, "unloadBtn", false)
-    createButton(refs.scriptGroup, "Reload", "リロード", 6, "reloadBtn", false)
-    createButton(refs.scriptGroup, "Language", "言語", 8, "languageBtn", false)
-
-    createButton(refs.teleportGroup, "TP to", "テレポート", 1, "tpToBtn", false)
-    createLabeledInput(refs.teleportGroup, "Pos", "座標", 2, "0 0 0", "tpPosInput")
-    createButton(refs.teleportGroup, "Set Pos", "現在の座標に設定", 3, "setPosBtn", false)
-
-    refs.toggle = Instance.new("TextButton")
-    refs.toggle.Name = "Toggle"
-    refs.toggle.AnchorPoint = Vector2.new(0.5, 1)
-    refs.toggle.Size = UDim2.new(0, TOGGLE_SIZE, 0, TOGGLE_SIZE)
-    refs.toggle.BackgroundColor3 = refs.main.BackgroundColor3
-    refs.toggle.BackgroundTransparency = refs.main.BackgroundTransparency
-    refs.toggle.BorderSizePixel = 0
-    refs.toggle.Text = ""
-    refs.toggle.AutoButtonColor = false
-    refs.toggle.ZIndex = 20
-    refs.toggle.Parent = gui
-
-    refs.main.Visible = false
-    refs.toggle.Visible = false
-
-    local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = UDim.new(1, 0)
-    toggleCorner.Parent = refs.toggle
-
-    local btnX = 0.5
-    local targetBtnX = btnX
-    local open = false
-
-    local dragging = false
-    local dragMoved = false
-    local mouseDown = false
-    local dragCandidate = false
-    local dragStartX = 0
-    local dragBtnStartX = 0
-
-    local tweening = false
-
-    local function toggleHiddenPos()
-        return UDim2.new(btnX, 0, 1, -BTN_H)
-    end
-
-    local function toggleShownPos()
-        local off = -(MAIN_MARGIN + FRAME_H + 10)
-        return UDim2.new(btnX, 0, 1, off)
-    end
-
-    local function mainHiddenPos()
-        return UDim2.new(btnX, 0, 1, FRAME_H)
-    end
-
-    local function mainShownPos()
-        return UDim2.new(btnX, 0, 1, -MAIN_MARGIN)
-    end
-
-    refs.main.Position = mainHiddenPos()
-    refs.toggle.Position = toggleHiddenPos()
-
-    local function toggleMain()
-        if destroyed or tweening or dragging then
-            return
-        end
-        tweening = true
-        local newMain = open and mainHiddenPos() or mainShownPos()
-        local newToggle = open and toggleHiddenPos() or toggleShownPos()
-        local TS2 = S(game, "TweenService")
-        local info = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        local twMain = TS2:Create(refs.main, info, { Position = newMain })
-        local twToggle = TS2:Create(refs.toggle, info, { Position = newToggle })
-        twMain:Play()
-        twToggle:Play()
-        twMain.Completed:Connect(function()
-            open = not open
-            tweening = false
-        end)
-    end
-
-    refs.toggle.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        if dragMoved then
-            return
-        end
-        toggleMain()
-    end)
-
-    local function getChar()
-        return lp.Character
-    end
-
-    local st = {
-        bodyTransValue = 0,
-        bodyTransLoopOn = false,
-        antiAfkOn = false,
-        shaderOn = false,
-        shaderActive = false,
-        shaderSaved = nil,
-        shaderStored = nil,
-        snowOn = false,
-        snowActive = false,
-snowFogSaved = nil,
-        noclipOn = false,
-        noclipSaved = {},
-        tpOn = false,
-        tpSpeed = initTpSpeedVal,
-        tpSavedWalkSpeed = nil,
-        anchorOn = false,
-        anchorData = nil,
-        antiVoidOn = false,
-        antiVoidSaved = ws.FallenPartsDestroyHeight,
-        antiFlingOn = false,
-        antiFlingSaved = {},
-        autoAntiMask = 0,
-        touchFlingOn = false,
-        flyJumpOn = false,
-        sitFlyOn = true,
-        flyMode = "none",
-        flySpeed = initFlySpeedVal,
-        flyPos = nil,
-        hoverTarget = nil,
-        hoverY = nil,
-        velAnchorPos = nil,
-        velDamping = 50,
-        moveKeys = { W = false, A = false, S = false, D = false, Q = false, E = false },
-        fovLoop = false,
-        fovValue = initFovVal,
-        speedLoop = false,
-        speedValue = initWalkVal,
-        jumpLoop = false,
-        jumpValue = initJumpVal,
-        maxZoomLoop = false,
-        maxZoomValue = initMaxZoomVal,
-        minZoomLoop = false,
-        minZoomValue = initMinZoomVal,
-        gravLoop = false,
-        gravValue = initGravVal,
-        noFogOn = false,
-        fogLoop = false,
-        fogColor = defaultFogColor,
-        fogStart = initFogStartVal,
-        fogEnd = initFogEndVal,
-        espOn = false,
-        miniEspOn = false,
-        espTimer = 0,
-        statusOn = false,
-        statusGui = nil,
-        statusLabel = nil,
-        antiFlingInterval = 0.2,
-        espInterval = 0.1,
-        statusFpsFrames = 0,
-        statusFpsStart = time(),
-        statusFpsNow = 0,
-        pingQ = {},
-        pingHead = 1,
-        pingTail = 0,
-        pingSum = 0,
-        fpsQ = {},
-        fpsHead = 1,
-        fpsTail = 0,
-        fpsSum = 0,
-        fullBrightLoopOn = false,
-        smartFlyOn = false,
-        smartFlyKey = Enum.KeyCode.E,
-        smartFlyWaitingKey = false,
-        smartResetOn = false,
-        smartResetKey = Enum.KeyCode.R,
-        smartResetWaitingKey = false,
-        chatOn = true,
-        tpPos = nil,
-        noMaxZoomOn = false,
-        noMaxZoomSaved = nil,
-        noMinZoomOn = false,
-        noMinZoomSaved = nil,
-        loopKillOn = false,
-        flingTarget = nil,
-        flingRunning = false,
-        flingCooldownEnd = 0,
-        desyncOn = false,
-        desyncPosOn = false,
-        desyncDirOn = false,
-        desyncDirRollOn = false,
-        desyncDirPitchOn = false,
-        desyncDirYawOn = false,
-        desyncDirRollDeg = 0,
-        desyncDirPitchDeg = 0,
-        desyncDirYawDeg = 0,
-
-        desyncSavedCF = nil,
-        desyncRealCF = nil,
-        desyncRealVel = nil,
-        desyncRealRotVel = nil,
-        desyncDummy = nil,
-        desyncDummyRoot = nil,
-        desyncDummyMotorMap = {},
-        desyncSourceChar = nil,
-        desyncPosTarget = nil,
-        desyncMaterialSaved = {},
-        resetCamLoopOn = false,
-        language = "en",
-    }
-
-    if type(g.LemeGUIV2_LangLoad) == "function" then
-        local lg = g.LemeGUIV2_LangLoad()
-        if lg then
-            st.language = lg
-        end
-    end
-
-    if type(g.LemeGUIV2_AutoAntiLoad) == "function" then
-        st.autoAntiMask = g.LemeGUIV2_AutoAntiLoad()
-    end
-
-    if type(g.LemeGUIV2_SnowCloudyInit) == "function" then
-        g.LemeGUIV2_SnowCloudyInit(st, refs)
-    end
-
-local hoverAlign, hoverOri, hoverAtt, hoverOriAtt
-
-    local vUser do
-        pcall(function()
-            vUser = game:GetService("VirtualUser")
-        end)
-    end
-
-    local antiAfkLoaded = false
-    local antiAfkConn = nil
-    local function setToggleText(btn, isOn)
-        if not btn then
-            return
-        end
-        local baseEn = btn:GetAttribute("TextEn") or btn.Text
-        local baseJp = btn:GetAttribute("TextJp") or baseEn
-        local base = st.language == "jp" and baseJp or baseEn
-        local onStr, offStr
-        if st.language == "jp" then
-            onStr, offStr = "オン", "オフ"
-        else
-            onStr, offStr = "ON", "OFF"
-        end
-        btn.Text = string.format("%s [%s]", base, isOn and onStr or offStr)
-    end
-
-    local function updNoclipBtn()
-        setToggleText(refs.noclipBtn, st.noclipOn)
-    end
-
-    local function updTpBtn()
-        setToggleText(refs.tpWalkBtn, st.tpOn)
-    end
-
-    local function updAnchorBtn()
-        setToggleText(refs.anchorBtn, st.anchorOn)
-    end
-
-    local function updAntiVoidBtn()
-        setToggleText(refs.antiVoidBtn, st.antiVoidOn)
-    end
-
-    local function updAntiAfkBtn()
-        setToggleText(refs.antiAfkBtn, st.antiAfkOn)
-    end
-
-    local function updAntiFlingBtn()
-        setToggleText(refs.antiFlingBtn, st.antiFlingOn)
-    end
-
-    local function updTouchFlingBtn()
-        setToggleText(refs.touchFlingBtn, st.touchFlingOn)
-    end
-
-    local function updFlyJumpBtn()
-        setToggleText(refs.flyJumpBtn, st.flyJumpOn)
-    end
-
-    local function updSitFlyBtn()
-        setToggleText(refs.sitFlyBtn, st.sitFlyOn)
-    end
-
-    local function updFlyBtns()
-        setToggleText(refs.flyBtn, st.flyMode == "fly")
-        setToggleText(refs.hoverBtn, st.flyMode == "hover")
-        setToggleText(refs.velBtn, st.flyMode == "vel")
-    end
-
-    local function updEspBtn()
-        setToggleText(refs.espBtn, st.espOn)
-    end
-
-    local function updMiniEspBtn()
-        setToggleText(refs.miniEspBtn, st.miniEspOn)
-    end
-
-    local function updStatusBtn()
-        setToggleText(refs.statusBtn, st.statusOn)
-    end
-
-    local function updLoopFovBtn()
-        setToggleText(refs.loopFovBtn, st.fovLoop)
-    end
-
-    local function updLoopSpeedBtn()
-        setToggleText(refs.loopSpeedBtn, st.speedLoop)
-    end
-
-    local function updLoopJumpBtn()
-        setToggleText(refs.loopJumpBtn, st.jumpLoop)
-    end
-
-    local function updLoopMaxZoomBtn()
-        setToggleText(refs.loopMaxZoomBtn, st.maxZoomLoop)
-    end
-
-    local function updLoopMinZoomBtn()
-        setToggleText(refs.loopMinZoomBtn, st.minZoomLoop)
-    end
-    refs.updLoopBodyTransBtn = function()
-        setToggleText(refs.loopBodyTransBtn, st.bodyTransLoopOn)
-    end
-
-    local function updLoopFogBtn()
-        setToggleText(refs.loopFogBtn, st.fogLoop)
-    end
-
-    local function updNoFogBtn()
-        setToggleText(refs.noFogBtn, st.noFogOn)
-    end
-
-    local function updLoopFbBtn()
-        setToggleText(refs.loopFbBtn, st.fullBrightLoopOn)
-    end
-
-    local function updLoopGravBtn()
-        setToggleText(refs.loopGravBtn, st.gravLoop)
-    end
-
-    local function updSmartFlyBtn()
-        setToggleText(refs.smartFlyBtn, st.smartFlyOn)
-    end
-
-    local function updSmartResetBtn()
-        setToggleText(refs.smartResetBtn, st.smartResetOn)
-    end
-
-    local function updChatBtn()
-        setToggleText(refs.chatBtn, st.chatOn)
-    end
-
-    refs.updShaderBtn = function()
-        setToggleText(refs.shaderBtn, st.shaderOn)
-    end
-
-    refs.updSnowBtn = function()
-        setToggleText(refs.snowBtn, st.snowOn)
-    end
-    local function updNoMaxZoomBtn()
-        setToggleText(refs.noMaxZoomBtn, st.noMaxZoomOn)
-    end
-
-    local function updNoMinZoomBtn()
-        setToggleText(refs.noMinZoomBtn, st.noMinZoomOn)
-    end
-
-    local function updLoopKillBtn()
-        setToggleText(refs.loopKillBtn, st.loopKillOn)
-    end
-
-    local function updDesyncBtn()
-        setToggleText(refs.desyncBtn, st.desyncOn)
-    end
-
-    local function updDesyncPosBtn()
-        setToggleText(refs.desyncPosBtn, st.desyncPosOn)
-        if refs.desyncPosCell then
-            refs.desyncPosCell.Visible = true
-        end
-    end
-
-    local function updDesyncDirBtn()
-        setToggleText(refs.desyncDirBtn, st.desyncDirOn)
-    end
-
-    local function updDesyncDirInputs()
-        local rCell = refs.desyncDirRollInput and refs.desyncDirRollInput.Parent
-        local pCell = refs.desyncDirPitchInput and refs.desyncDirPitchInput.Parent
-        local yCell = refs.desyncDirYawInput and refs.desyncDirYawInput.Parent
-        if rCell then
-            rCell.Visible = st.desyncDirRollOn == true
-        end
-        if pCell then
-            pCell.Visible = st.desyncDirPitchOn == true
-        end
-        if yCell then
-            yCell.Visible = st.desyncDirYawOn == true
-        end
-    end
-
-    local function updLoopResetCamBtn()
-        setToggleText(refs.loopResetCamBtn, st.resetCamLoopOn)
-    end
-
-    local function updFlingTargetDisplay()
-        local lbl = refs.flingTargetDisplay
-        if not lbl then
-            return
-        end
-        local baseEn = lbl:GetAttribute("LabelEn") or "Target"
-        local baseJp = lbl:GetAttribute("LabelJp") or baseEn
-        local base = st.language == "jp" and baseJp or baseEn
-        local noneStr = st.language == "jp" and "なし" or "None"
-        local name = st.flingTarget and st.flingTarget.Name or noneStr
-        lbl.Text = base .. " [" .. name .. "]"
-    end
-
-    local function updLanguageBtn()
-        local btn = refs.languageBtn
-        if not btn then
-            return
-        end
-        local baseEn = btn:GetAttribute("TextEn") or "Language"
-        local baseJp = btn:GetAttribute("TextJp") or "言語"
-        if st.language == "jp" then
-            btn.Text = baseJp .. " [日本語]"
-        else
-            btn.Text = baseEn .. " [English]"
-        end
-    end
-
-    local function applyLanguage()
-        for _, lbl in ipairs(allGroupLabels) do
-            local en = lbl:GetAttribute("TextEn")
-            local jp = lbl:GetAttribute("TextJp") or en
-            if en then
-                lbl.Text = st.language == "jp" and jp or en
-            end
-        end
-
-        for _, btn in ipairs(allButtons) do
-            local en = btn:GetAttribute("TextEn")
-            local jp = btn:GetAttribute("TextJp") or en
-            if en then
-                local isToggle = btn:GetAttribute("IsToggle")
-                if not isToggle then
-                    btn.Text = st.language == "jp" and jp or en
-                end
-            end
-        end
-
-        for _, tb in ipairs(allInputs) do
-            local en = tb:GetAttribute("PrefixEn")
-            local jp = tb:GetAttribute("PrefixJp") or en
-            if en then
-                local tx = tb.Text or ""
-                local oldPf = tb:GetAttribute("Prefix") or en
-                local value = tx
-
-                if en and #en > 0 and value:sub(1, #en) == en then
-                    value = value:sub(#en + 1)
-                end
-                if jp and #jp > 0 and value:sub(1, #jp) == jp then
-                    value = value:sub(#jp + 1)
-                end
-                if oldPf and #oldPf > 0 and value:sub(1, #oldPf) == oldPf then
-                    value = value:sub(#oldPf + 1)
-                end
-
-                value = string.gsub(value, "^%s+", "")
-                local newPf = st.language == "jp" and jp or en
-                tb:SetAttribute("Prefix", newPf)
-                tb.Text = newPf .. value
-            end
-        end
-
-        updNoclipBtn()
-        updTpBtn()
-        updAnchorBtn()
-        updAntiVoidBtn()
-        updAntiAfkBtn()
-        updAntiFlingBtn()
-        updTouchFlingBtn()
-        updFlyJumpBtn()
-        updSitFlyBtn()
-        updFlyBtns()
-        updEspBtn()
-        updMiniEspBtn()
-        updStatusBtn()
-        updLoopFovBtn()
-        updLoopSpeedBtn()
-        updLoopJumpBtn()
-        updLoopMaxZoomBtn()
-        updLoopMinZoomBtn()
-        refs.updLoopBodyTransBtn()
-        updNoFogBtn()
-        updLoopFogBtn()
-        updLoopFbBtn()
-        updLoopGravBtn()
-        updSmartFlyBtn()
-        updSmartResetBtn()
-        updChatBtn()
-    refs.updShaderBtn()
-    refs.updSnowBtn()
-    if api and type(api.onLanguageChanged) == "function" then api.onLanguageChanged() end
-        updNoMaxZoomBtn()
-        updNoMinZoomBtn()
-        updLoopKillBtn()
-        updDesyncBtn()
-        updDesyncPosBtn()
-        updDesyncDirBtn()
-        updDesyncDirInputs()
-        updLoopResetCamBtn()
-        updLanguageBtn()
-        local noneStr2 = st.language == "jp" and "なし" or "None"
-        local flyKeyName = st.smartFlyKey and st.smartFlyKey.Name or noneStr2
-        local resetKeyName = st.smartResetKey and st.smartResetKey.Name or noneStr2
-        if refs.smartFlyTrigBtn then
-            refs.smartFlyTrigBtn.Text = st.language == "jp"
-                and ("トリガーキー [" .. flyKeyName .. "]")
-                or ("Trigger [" .. flyKeyName .. "]")
-        end
-        if refs.smartResetTrigBtn then
-            refs.smartResetTrigBtn.Text = st.language == "jp"
-                and ("トリガーキー [" .. resetKeyName .. "]")
-                or ("Trigger [" .. resetKeyName .. "]")
-        end
-        if type(g.LemeGUIV2_AutoAntiUpdateBtn) == "function" then
-            g.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
-        end
-        if type(g.LemeGUIV2_AutoAntiRefreshUI) == "function" then
-            g.LemeGUIV2_AutoAntiRefreshUI(refs, st)
-        end
-        updFlingTargetDisplay()
-    end
-
-    local function rejoin()
-        if #P:GetPlayers() == 1 then
-            lp:Kick("Rejoining...")
-            wait()
-            T:Teleport(game.PlaceId, lp)
-        else
-            T:TeleportToPlaceInstance(game.PlaceId, game.JobId, lp)
-        end
-    end
-
-    local function killSelf()
-        local c = getChar()
-        if not c then
-            return
-        end
-        local hum = c:FindFirstChildWhichIsA("Humanoid")
-        if hum then
-            hum:ChangeState(Enum.HumanoidStateType.Dead)
-        end
-    end
-
-    local function setAntiAfkEnabled(on)
-        if on then
-            if antiAfkConn and antiAfkConn.Connected then
-                return
-            end
-            if not vUser then
-                return
-            end
-            antiAfkConn = lp.Idled:Connect(function()
-                pcall(function()
-                    vUser:CaptureController()
-                    vUser:SetKeyDown(Enum.KeyCode.F15)
-                    vUser:SetKeyUp(Enum.KeyCode.F15)
-                end)
-            end)
-        else
-            if antiAfkConn then
-                pcall(function()
-                    antiAfkConn:Disconnect()
-                end)
-            end
-            antiAfkConn = nil
-        end
-    end
-
-    local function toggleAntiAfk()
-        st.antiAfkOn = not st.antiAfkOn
-        setToggleText(refs.antiAfkBtn, st.antiAfkOn)
-        setAntiAfkEnabled(st.antiAfkOn)
-    end
-
-    local FLOAT_NAME = "FloatPart"
-
-    local function cacheNoclip()
-        local saved = st.noclipSaved
-        for k in pairs(saved) do
-            saved[k] = nil
-        end
-        local c = getChar()
-        if not c then
-            return
-        end
-        for _, p2 in ipairs(c:GetDescendants()) do
-            if p2:IsA("BasePart") then
-                saved[p2] = p2.CanCollide
-            end
-        end
-    end
-
-    local function restoreNoclip()
-        for p2, v in pairs(st.noclipSaved) do
-            if p2 and p2.Parent then
-                p2.CanCollide = v
-            end
-        end
-    end
-
-    local function toggleNoclip()
-        st.noclipOn = not st.noclipOn
-        if st.noclipOn then
-            cacheNoclip()
-        else
-            restoreNoclip()
-        end
-        updNoclipBtn()
-    end
-
-    local function toggleTpWalk()
-        st.tpOn = not st.tpOn
-        local c = getChar()
-        local hum = c and c:FindFirstChildWhichIsA("Humanoid")
-        if st.tpOn then
-            if hum then
-                st.tpSavedWalkSpeed = hum.WalkSpeed
-                hum.WalkSpeed = 0
-            else
-                st.tpSavedWalkSpeed = nil
-            end
-        else
-            if hum then
-                hum.WalkSpeed = st.tpSavedWalkSpeed or defaultWalkSpeed
-            end
-        end
-        updTpBtn()
-    end
-
-    local function updateTpWalk(dt)
-        if not st.tpOn then
-            return
-        end
-        local c = getChar()
-        local hum = c and c:FindFirstChildWhichIsA("Humanoid")
-        local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-        if not hum or not hrp2 then
-            return
-        end
-        local move = hum.MoveDirection
-        local flat = Vector3.new(move.X, 0, move.Z)
-        if flat.Magnitude > 0 then
-            flat = flat.Unit
-            local d = flat * st.tpSpeed * dt
-            local pos = hrp2.Position + d
-            local look = hrp2.CFrame.LookVector
-            hrp2.CFrame = CFrame.new(pos, pos + look)
-            local v = hrp2.AssemblyLinearVelocity
-            hrp2.AssemblyLinearVelocity = Vector3.new(0, v.Y, 0)
-        end
-    end
-
-    local function createHoverAlign(hrp2)
-        if not hrp2 then
-            return
-        end
-        if not hoverAlign then
-            hoverAlign = Instance.new("AlignPosition")
-            hoverAlign.ApplyAtCenterOfMass = true
-            hoverAlign.Responsiveness = 1/0
-            hoverAlign.MaxForce = 1/0
-            hoverAlign.Mode = Enum.PositionAlignmentMode.OneAttachment
-            hoverAlign.Parent = hrp2
-            hoverAtt = Instance.new("Attachment")
-            hoverAtt.Parent = hrp2
-            hoverAlign.Attachment0 = hoverAtt
-        end
-        if not hoverOri then
-            hoverOri = Instance.new("AlignOrientation")
-            hoverOri.Responsiveness = 1/0
-            hoverOri.MaxTorque = 1/0
-            hoverOri.Mode = Enum.OrientationAlignmentMode.OneAttachment
-            hoverOri.Parent = hrp2
-            hoverOriAtt = Instance.new("Attachment")
-            hoverOriAtt.Parent = hrp2
-            hoverOri.Attachment0 = hoverOriAtt
-        end
-        local cam2 = ws.CurrentCamera
-        if not cam2 then
-            return
-        end
-        local cf = cam2.CFrame
-        local _, y = cf:ToOrientation()
-        hoverOri.CFrame = CFrame.fromOrientation(0, y, 0)
-        local tgt = st.hoverTarget or hrp2.Position
-        local yPos = st.hoverY or tgt.Y
-        hoverAlign.Position = Vector3.new(tgt.X, yPos, tgt.Z)
-    end
-
-    local function removeHoverAlign()
-        if hoverAlign then
-            pcall(function()
-                hoverAlign:Destroy()
-            end)
-            hoverAlign = nil
-        end
-        if hoverAtt then
-            pcall(function()
-                hoverAtt:Destroy()
-            end)
-            hoverAtt = nil
-        end
-        if hoverOri then
-            pcall(function()
-                hoverOri:Destroy()
-            end)
-            hoverOri = nil
-        end
-        if hoverOriAtt then
-            pcall(function()
-                hoverOriAtt:Destroy()
-            end)
-            hoverOriAtt = nil
-        end
-    end
-
-    local function toggleAnchor()
-        if st.anchorOn then
-            local data = st.anchorData
-            if data and data.frozen and not data.unfrozenOnce then
-                data.frozen = false
-                data.unfrozenOnce = true
-                local hrp2 = data.hrp
-                if hrp2 and hrp2.Parent then
-                    local sv = data.savedVel or Vector3.zero
-                    local srv = data.savedRotVel or Vector3.zero
-                    hrp2.AssemblyLinearVelocity = sv
-                    hrp2.AssemblyAngularVelocity = srv
-                    hrp2.RotVelocity = srv
-                    hrp2.Velocity = sv
-                end
-                local hum = data.hum
-                if hum and hum.Parent then
-                    for _, t2 in ipairs(hum:GetPlayingAnimationTracks()) do
-                        t2:Stop()
-                    end
-                end
-                if data.hb and data.hb.Connected then
-                    data.hb:Disconnect()
-                end
-            end
-            st.anchorOn = false
-            st.anchorData = nil
-        else
-            local c = getChar()
-            local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-            local hum = c and c:FindFirstChildOfClass("Humanoid")
-            if not c or not hrp2 or not hum then
-                st.anchorOn = false
-                st.anchorData = nil
-                updAnchorBtn()
-                return
-            end
-            local data = {
-                char = c,
-                hrp = hrp2,
-                hum = hum,
-                frozen = true,
-                unfrozenOnce = false,
-                savedVel = hrp2.AssemblyLinearVelocity,
-                savedRotVel = hrp2.AssemblyAngularVelocity,
-                freezeCF = hrp2.CFrame,
-            }
-            data.hb = addConn(R.Heartbeat:Connect(function()
-                if destroyed then
-                    return
-                end
-                if not st.anchorOn then
-                    return
-                end
-                if data.frozen ~= true then
-                    return
-                end
-                local h = data.hrp
-                local hm = data.hum
-                if not h or not hm or not h.Parent or not hm.Parent then
-                    return
-                end
-                h.AssemblyAngularVelocity = Vector3.zero
-                h.AssemblyLinearVelocity = Vector3.zero
-                h.RotVelocity = Vector3.zero
-                h.Velocity = Vector3.zero
-                h.CFrame = data.freezeCF
-                for _, t2 in ipairs(hm:GetPlayingAnimationTracks()) do
-                    t2:AdjustSpeed(0)
-                end
-            end))
-            st.anchorData = data
-            st.anchorOn = true
-        end
-        updAnchorBtn()
-    end
-
-    local function toggleAntiVoid()
-        st.antiVoidOn = not st.antiVoidOn
-        if st.antiVoidOn then
-            st.antiVoidSaved = ws.FallenPartsDestroyHeight
-        else
-            local ok, v = pcall(function()
-                return st.antiVoidSaved
-            end)
-            if ok and v ~= nil then
-                ws.FallenPartsDestroyHeight = v
-            end
-        end
-        updAntiVoidBtn()
-    end
-
-    local function updateAntiVoid()
-        if st.antiVoidOn then
-            ws.FallenPartsDestroyHeight = 0/0
-        end
-    end
-
-    local antiFlingZero = Vector3.new(0, 0, 0)
-    local antiFlingTrackedHRP = {}
-
-    local function antiFlingSafeSetVel(part)
-        if not part then
-            return
-        end
-        pcall(function()
-            part.AssemblyLinearVelocity = antiFlingZero
-        end)
-        pcall(function()
-            part.AssemblyAngularVelocity = antiFlingZero
-        end)
-        pcall(function()
-            part.Velocity = antiFlingZero
-        end)
-        pcall(function()
-            part.RotVelocity = antiFlingZero
-        end)
-    end
-
-    local function antiFlingTrackPlayer(plr2)
-        if not plr2 or plr2 == lp then
-            return
-        end
-
-        local function updateChar(char)
-            if not char then
-                antiFlingTrackedHRP[plr2] = nil
-                return
-            end
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if not hrp then
-                hrp = char:WaitForChild("HumanoidRootPart", 5)
-            end
-            if hrp and hrp:IsA("BasePart") then
-                antiFlingTrackedHRP[plr2] = hrp
-            else
-                antiFlingTrackedHRP[plr2] = nil
-            end
-        end
-
-        if plr2.Character then
-            updateChar(plr2.Character)
-        end
-
-        addConn(plr2.CharacterAdded:Connect(updateChar))
-        addConn(plr2.CharacterRemoving:Connect(function()
-            antiFlingTrackedHRP[plr2] = nil
-        end))
-    end
-
-    for _, plr2 in ipairs(P:GetPlayers()) do
-        antiFlingTrackPlayer(plr2)
-    end
-
-    addConn(P.PlayerAdded:Connect(antiFlingTrackPlayer))
-    addConn(P.PlayerRemoving:Connect(function(plr2)
-        antiFlingTrackedHRP[plr2] = nil
-    end))
-
-    local function toggleAntiFling()
-        st.antiFlingOn = not st.antiFlingOn
-        updAntiFlingBtn()
-    end
-
-    local function updateAntiFling()
-        if not st.antiFlingOn then
-            return
-        end
-        for plr2, hrp in pairs(antiFlingTrackedHRP) do
-            if plr2 ~= lp and hrp and hrp.Parent then
-                antiFlingSafeSetVel(hrp)
-            end
-        end
-    end
-
-    local touchFlingRunning = false
-    local touchFlingStopRequested = false
-
-    local function touchFlingLoop()
-        touchFlingRunning = true
-        local huge = Vector3.new(0, 340282356779733642748073463979561713663, 0)
-        while not destroyed and not touchFlingStopRequested do
-            R.Heartbeat:Wait()
-            if destroyed or touchFlingStopRequested then
-                break
-            end
-            local c = getChar()
-            local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-            if hrp2 and hrp2.Parent then
-                local originalVelocity = hrp2.Velocity
-                hrp2.Velocity = huge
-                R.RenderStepped:Wait()
-                if hrp2 and hrp2.Parent then
-                    hrp2.Velocity = originalVelocity
-                end
-            end
-        end
-        touchFlingRunning = false
-        touchFlingStopRequested = false
-    end
-
-    local function toggleTouchFling()
-        if st.touchFlingOn then
-            st.touchFlingOn = false
-            touchFlingStopRequested = true
-        else
-            st.touchFlingOn = true
-            if not touchFlingRunning then
-                touchFlingStopRequested = false
-                local co = coroutine.create(touchFlingLoop)
-                coroutine.resume(co)
-            end
-        end
-        updTouchFlingBtn()
-    end
-
-    local function toggleFlyJump()
-        st.flyJumpOn = not st.flyJumpOn
-        updFlyJumpBtn()
-    end
-
-    local function setFlyMode(m)
-        local prev = st.flyMode
-        if prev == m then
-            m = "none"
-        end
-
-        local c = getChar()
-        local hum = c and c:FindFirstChildOfClass("Humanoid")
-        local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-        local savedLook
-
-        if prev == "fly" and hrp2 then
-            savedLook = hrp2.CFrame.LookVector
-        end
-
-        st.flyMode = m
-
-        if m == "none" then
-            if savedLook and hrp2 and hum then
-                hum.AutoRotate = false
-                local pos = hrp2.Position
-                hrp2.CFrame = CFrame.new(pos, pos + savedLook)
-                delay(0.1, function()
-                    if destroyed then
-                        return
-                    end
-                    local c2 = getChar()
-                    local hum2 = c2 and c2:FindFirstChildOfClass("Humanoid")
-                    if hum2 then
-                        hum2.AutoRotate = true
-                    end
-                end)
-            elseif hum then
-                hum.AutoRotate = true
-            end
-            st.flyPos = nil
-            st.hoverTarget = nil
-            st.hoverY = nil
-            st.velAnchorPos = nil
-            removeHoverAlign()
-        elseif m == "fly" then
-            if hum then
-                if st.sitFlyOn then hum.Sit = true end
-                hum.AutoRotate = false
-            end
-            st.hoverTarget = nil
-            st.hoverY = nil
-            st.velAnchorPos = nil
-            removeHoverAlign()
-            st.flyPos = hrp2 and hrp2.Position or nil
-        elseif m == "hover" then
-            if hum then
-                if st.sitFlyOn then hum.Sit = true end
-                hum.AutoRotate = true
-            end
-            st.flyPos = nil
-            st.velAnchorPos = nil
-            if hrp2 then
-                st.hoverTarget = hrp2.Position
-                st.hoverY = hrp2.Position.Y
-                createHoverAlign(hrp2)
-            end
-        elseif m == "vel" then
-            if hum then
-                if st.sitFlyOn then hum.Sit = true end
-                hum.AutoRotate = true
-            end
-            st.flyPos = nil
-            st.hoverTarget = nil
-            st.hoverY = nil
-            removeHoverAlign()
-            st.velAnchorPos = hrp2 and hrp2.Position or nil
-        end
-
-        updFlyBtns()
-    end
-
-    local function getAdornee(c)
-        if not c or not c.Parent then
-            return nil
-        end
-        local hrp2 = c:FindFirstChild("HumanoidRootPart")
-        if hrp2 and hrp2:IsA("BasePart") then
-            return hrp2
-        end
-        if c.PrimaryPart and c.PrimaryPart:IsA("BasePart") then
-            return c.PrimaryPart
-        end
-        local h = c:FindFirstChild("Head")
-        if h and h:IsA("BasePart") then
-            return h
-        end
-        for _, ch in ipairs(c:GetChildren()) do
-            if ch:IsA("BasePart") then
-                return ch
-            end
-        end
-        return nil
-    end
-
-    local function healthColor(r)
-        if r >= 0.8 then
-            return Color3.fromRGB(120, 230, 120)
-        elseif r >= 0.6 then
-            return Color3.fromRGB(230, 230, 120)
-        elseif r >= 0.4 then
-            return Color3.fromRGB(255, 170, 80)
-        elseif r > 0 then
-            return Color3.fromRGB(230, 120, 120)
-        else
-            return Color3.fromRGB(0, 0, 0)
-        end
-    end
-
-    local function buildNameGui(b)
-        b:ClearAllChildren()
-        b.Size = UDim2.new(0, 190, 0, 72)
-        b.StudsOffset = Vector3.new(0, 3.5, 0)
-        b.SizeOffset = Vector2.new(0, 1)
-        b.AlwaysOnTop = true
-        b.MaxDistance = 0
-
-        local mainF = Instance.new("Frame")
-        mainF.Name = "MainFrame"
-        mainF.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
-        mainF.BackgroundTransparency = 0.15
-        mainF.BorderSizePixel = 0
-        mainF.Size = UDim2.new(1, 0, 1, 0)
-        mainF.Parent = b
-
-        local c = Instance.new("UICorner")
-        c.CornerRadius = UDim.new(0, 6)
-        c.Parent = mainF
-
-        local top = Instance.new("Frame")
-        top.Name = "TopFrame"
-        top.BackgroundTransparency = 1
-        top.BorderSizePixel = 0
-        top.Size = UDim2.new(1, -16, 0.45, 0)
-        top.Position = UDim2.new(0, 8, 0, 4)
-        top.Parent = mainF
-
-        local dName = Instance.new("TextLabel")
-        dName.Name = "DisplayName"
-        dName.BackgroundTransparency = 1
-        dName.BorderSizePixel = 0
-        dName.Size = UDim2.new(0.6, 0, 0.5, 0)
-        dName.TextColor3 = Color3.new(1, 1, 1)
-        dName.Font = Enum.Font.Code
-        dName.TextScaled = true
-        dName.TextXAlignment = Enum.TextXAlignment.Left
-        dName.TextYAlignment = Enum.TextYAlignment.Center
-        dName.Parent = top
-
-        local uName = Instance.new("TextLabel")
-        uName.Name = "Username"
-        uName.BackgroundTransparency = 1
-        uName.BorderSizePixel = 0
-        uName.Size = UDim2.new(0.6, 0, 0.5, 0)
-        uName.Position = UDim2.new(0, 0, 0.5, 0)
-        uName.TextColor3 = Color3.fromRGB(180, 180, 200)
-        uName.Font = Enum.Font.Code
-        uName.TextScaled = true
-        uName.TextXAlignment = Enum.TextXAlignment.Left
-        uName.TextYAlignment = Enum.TextYAlignment.Center
-        uName.Parent = top
-
-        local hLbl = Instance.new("TextLabel")
-        hLbl.Name = "HealthLabel"
-        hLbl.BackgroundTransparency = 1
-        hLbl.BorderSizePixel = 0
-        hLbl.Size = UDim2.new(0.35, -4, 0.3, 0)
-        hLbl.Position = UDim2.new(0.65, 0, 0, 4)
-        hLbl.TextColor3 = Color3.fromRGB(220, 220, 230)
-        hLbl.Font = Enum.Font.Code
-        hLbl.TextScaled = true
-        hLbl.TextXAlignment = Enum.TextXAlignment.Right
-        hLbl.TextYAlignment = Enum.TextYAlignment.Center
-        hLbl.Parent = mainF
-
-        local bottom = Instance.new("Frame")
-        bottom.Name = "BottomFrame"
-        bottom.BackgroundTransparency = 1
-        bottom.BorderSizePixel = 0
-        bottom.Size = UDim2.new(1, -16, 0.45, 0)
-        bottom.Position = UDim2.new(0, 8, 0.5, 0)
-        bottom.Parent = mainF
-
-        local hBg = Instance.new("Frame")
-        hBg.Name = "HealthBackground"
-        hBg.BackgroundColor3 = Color3.fromRGB(40, 40, 52)
-        hBg.BorderSizePixel = 0
-        hBg.Size = UDim2.new(0.6, 0, 0.4, 0)
-        hBg.Position = UDim2.new(0, 16, 0, 4)
-        hBg.Parent = bottom
-
-        local hBgC = Instance.new("UICorner")
-        hBgC.CornerRadius = UDim.new(0, 4)
-        hBgC.Parent = hBg
-
-        local hFill = Instance.new("Frame")
-        hFill.Name = "HealthFill"
-        hFill.BackgroundColor3 = Color3.fromRGB(120, 230, 120)
-        hFill.BorderSizePixel = 0
-        hFill.Size = UDim2.new(1, 0, 1, 0)
-        hFill.Parent = hBg
-
-        local hFillC = Instance.new("UICorner")
-        hFillC.CornerRadius = UDim.new(0, 4)
-        hFillC.Parent = hFill
-
-        local tLbl = Instance.new("TextLabel")
-        tLbl.Name = "TeamLabel"
-        tLbl.BackgroundTransparency = 1
-        tLbl.BorderSizePixel = 0
-        tLbl.Size = UDim2.new(1, 0, 0.4, 0)
-        tLbl.Position = UDim2.new(0, 0, 0.5, 0)
-        tLbl.TextColor3 = Color3.fromRGB(200, 200, 255)
-        tLbl.Font = Enum.Font.Code
-        tLbl.TextScaled = true
-        tLbl.TextXAlignment = Enum.TextXAlignment.Left
-        tLbl.TextYAlignment = Enum.TextYAlignment.Center
-        tLbl.Parent = bottom
-    end
-
-    local function ensureNameEsp(c, pl)
-        if not c or not c.Parent then
-            return
-        end
-        local ad = getAdornee(c)
-        if not ad then
-            return
-        end
-        local bb
-        for _, v in ipairs(c:GetChildren()) do
-            if v:IsA("BillboardGui") and v.Name == "NameESP" then
-                bb = v
-                break
-            end
-        end
-        if not bb then
-            bb = Instance.new("BillboardGui")
-            bb.Name = "NameESP"
-            bb.Parent = c
-        end
-        buildNameGui(bb)
-        bb.Adornee = ad
-        local mainF = bb:FindFirstChild("MainFrame")
-        if not mainF or not mainF:IsA("Frame") then
-            return
-        end
-        local top = mainF:FindFirstChild("TopFrame")
-        local bottom = mainF:FindFirstChild("BottomFrame")
-        local dName = top and top:FindFirstChild("DisplayName")
-        local uName = top and top:FindFirstChild("Username")
-        local hLbl = mainF:FindFirstChild("HealthLabel")
-        local hBg = bottom and bottom:FindFirstChild("HealthBackground")
-        local hFill = hBg and hBg:FindFirstChild("HealthFill")
-        local tLbl = bottom and bottom:FindFirstChild("TeamLabel")
-
-        if dName and dName:IsA("TextLabel") then
-            dName.Text = pl.DisplayName
-        end
-        if uName and uName:IsA("TextLabel") then
-            uName.Text = "@ " .. pl.Name
-        end
-
-        local hum = c:FindFirstChildOfClass("Humanoid")
-        local hNow, hMax = 0, 0
-        if hum then
-            hNow = math.max(0, hum.Health)
-            hMax = math.max(1, hum.MaxHealth)
-        end
-        local r = 0
-        if hMax > 0 then
-            r = math.clamp(hNow / hMax, 0, 1)
-        end
-        if hLbl and hLbl:IsA("TextLabel") then
-            hLbl.Text = string.format("%d/%d", hNow, hMax)
-        end
-        local col = healthColor(r)
-        if hFill and hFill:IsA("Frame") then
-            hFill.Size = UDim2.new(r, 0, 1, 0)
-            hFill.BackgroundColor3 = col
-        end
-        if tLbl and tLbl:IsA("TextLabel") then
-            local noneStr = st.language == "jp" and "なし" or "None"
-            local tName = "Team: " .. noneStr
-            local tColor = Color3.fromRGB(200, 200, 255)
-            if pl.Team then
-                tName = "Team: " .. pl.Team.Name
-                if pl.TeamColor then
-                    tColor = pl.TeamColor.Color
-                end
-            end
-            tLbl.Text = tName
-            tLbl.TextColor3 = tColor
-        end
-    end
-
-    local function clearNameEsp()
-        for _, pl in ipairs(P:GetPlayers()) do
-            if pl ~= lp then
-                local c = pl.Character
-                if c then
-                    for _, v in ipairs(c:GetChildren()) do
-                        if v:IsA("BillboardGui") and v.Name == "NameESP" then
-                            v:Destroy()
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    local function ensureMiniEsp(c, pl)
-        if not c or not c.Parent then
-            return
-        end
-        local head = c:FindFirstChild("Head") or c:FindFirstChild("HumanoidRootPart")
-        if not head then
-            return
-        end
-        local bb
-        for _, v in ipairs(c:GetChildren()) do
-            if v:IsA("BillboardGui") and v.Name == "MiniESP" then
-                bb = v
-                break
-            end
-        end
-        if not bb then
-            bb = Instance.new("BillboardGui")
-            bb.Name = "MiniESP"
-            bb.Size = UDim2.new(0, 280, 0, 30)
-            bb.StudsOffset = Vector3.new(0, 3, 0)
-            bb.AlwaysOnTop = true
-            bb.MaxDistance = 0
-            bb.Parent = c
-            local lbl = Instance.new("TextLabel")
-            lbl.Name = "Name"
-            lbl.BackgroundTransparency = 1
-            lbl.BorderSizePixel = 0
-            lbl.Size = UDim2.new(1, 0, 1, 0)
-            lbl.Font = Enum.Font.Code
-            lbl.TextColor3 = Color3.new(1, 1, 1)
-            lbl.TextStrokeColor3 = Color3.new(0, 0, 0)
-            lbl.TextStrokeTransparency = 0
-            lbl.TextScaled = false
-            lbl.TextSize = 24
-            lbl.TextWrapped = false
-            lbl.Parent = bb
-        end
-        bb.Adornee = head
-        local lbl2 = bb:FindFirstChild("Name")
-        if lbl2 and lbl2:IsA("TextLabel") then
-            lbl2.Text = pl.DisplayName
-        end
-    end
-
-    local function clearMiniEsp()
-        for _, pl in ipairs(P:GetPlayers()) do
-            if pl ~= lp then
-                local c = pl.Character
-                if c then
-                    for _, v in ipairs(c:GetChildren()) do
-                        if v:IsA("BillboardGui") and v.Name == "MiniESP" then
-                            v:Destroy()
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    local function updateEsp(dt)
-        if not st.espOn and not st.miniEspOn then
-            return
-        end
-        st.espTimer += dt
-        if st.espTimer < st.espInterval then
-            return
-        end
-        st.espTimer = 0
-        for _, pl in ipairs(P:GetPlayers()) do
-            if pl ~= lp then
-                local c = pl.Character
-                if c then
-                    if st.espOn then
-                        ensureNameEsp(c, pl)
-                    end
-                    if st.miniEspOn then
-                        ensureMiniEsp(c, pl)
-                    end
-                end
-            end
-        end
-    end
-
-    local function toggleESP()
-        if st.espOn then
-            st.espOn = false
-            clearNameEsp()
-        else
-            st.espOn = true
-            if st.miniEspOn then
-                st.miniEspOn = false
-                clearMiniEsp()
-            end
-        end
-        updEspBtn()
-        updMiniEspBtn()
-    end
-
-    local function toggleMiniESP()
-        if st.miniEspOn then
-            st.miniEspOn = false
-            clearMiniEsp()
-        else
-            st.miniEspOn = true
-            if st.espOn then
-                st.espOn = false
-                clearNameEsp()
-            end
-        end
-        updEspBtn()
-        updMiniEspBtn()
-    end
-
-    local function sRound(n)
-        if n >= 0 then
-            return math.floor(n + 0.5)
-        else
-            return math.ceil(n - 0.5)
-        end
-    end
-
-    local function pushPing(now, v)
-        local q = st.pingQ
-        local h = st.pingHead
-        local t2 = st.pingTail + 1
-        q[t2] = { t = now, v = v }
-        st.pingTail = t2
-        st.pingSum += v
-        local cutoff = now - 5
-        while h <= t2 and q[h] and q[h].t < cutoff do
-            st.pingSum -= q[h].v
-            q[h] = nil
-            h += 1
-        end
-        st.pingHead = h
-    end
-
-    local function avgPing()
-        local h = st.pingHead
-        local t2 = st.pingTail
-        local count = t2 - h + 1
-        if count > 0 then
-            return st.pingSum / count
-        end
-        return 0
-    end
-
-    local function pushFps(now, v)
-        local q = st.fpsQ
-        local h = st.fpsHead
-        local t2 = st.fpsTail + 1
-        q[t2] = { t = now, v = v }
-        st.fpsTail = t2
-        st.fpsSum += v
-        local cutoff = now - 5
-        while h <= t2 and q[h] and q[h].t < cutoff do
-            st.fpsSum -= q[h].v
-            q[h] = nil
-            h += 1
-        end
-        st.fpsHead = h
-    end
-
-    local function avgFps()
-        local h = st.fpsHead
-        local t2 = st.fpsTail
-        local count = t2 - h + 1
-        if count > 0 then
-            return st.fpsSum / count
-        end
-        return 0
-    end
-
-    local function readPing()
-        local ok, v = pcall(function()
-            return ST.Network.ServerStatsItem["Data Ping"]:GetValue()
-        end)
-        if ok and typeof(v) == "number" then
-            return v
-        end
-        local ok2, s = pcall(function()
-            return ST.Network.ServerStatsItem["Data Ping"]:GetValueString()
-        end)
-        if ok2 and typeof(s) == "string" then
-            local n = tonumber((s:gsub("[^%d%.]", "")))
-            if n then
-                return n
-            end
-        end
-        local ps = ST:FindFirstChild("PerformanceStats")
-        if ps and ps:FindFirstChild("Ping") then
-            local item = ps.Ping
-            local ok3, v3 = pcall(function()
-                return item:GetValue()
-            end)
-            if ok3 and typeof(v3) == "number" then
-                return v3
-            end
-            local ok4, s4 = pcall(function()
-                return item:GetValueString()
-            end)
-            if ok4 and typeof(s4) == "string" then
-                local n2 = tonumber((s4:gsub("[^%d%.]", "")))
-                if n2 then
-                    return n2
-                end
-            end
-        end
-        return 0
-    end
-
-    local function getPos()
-        local c = getChar()
-        if c and c.Parent then
-            local hrp2 = c:FindFirstChild("HumanoidRootPart")
-            if hrp2 and hrp2.Parent then
-                local p2 = hrp2.Position
-                return p2.X, p2.Y, p2.Z
-            end
-            local cf = c:GetPivot()
-            local p2 = cf.Position
-            return p2.X, p2.Y, p2.Z
-        end
-        local cam2 = ws.CurrentCamera
-        if cam2 then
-            local p2 = cam2.CFrame.Position
-            return p2.X, p2.Y, p2.Z
-        end
-        return 0, 0, 0
-    end
-
-    local function tryClipboard(s)
-        local ok = false
-        if typeof(setclipboard) == "function" then
-            ok = pcall(function()
-                setclipboard(s)
-            end)
-            if ok then
-                return true
-            end
-        end
-        local GSvc = game:GetService("GuiService")
-        if GSvc and GSvc.SetClipboard then
-            ok = pcall(function()
-                GSvc:SetClipboard(s)
-            end)
-            if ok then
-                return true
-            end
-        end
-        local ok2, studio = pcall(function()
-            return game:GetService("StudioService")
-        end)
-        if ok2 and studio and studio.CopyToClipboard then
-            ok = pcall(function()
-                studio:CopyToClipboard(s)
-            end)
-            if ok then
-                return true
-            end
-        end
-        return false
-    end
-
-    local function createStatusGui()
-        if st.statusGui then
-            st.statusGui:Destroy()
-            st.statusGui = nil
-        end
-        local sg = Instance.new("ScreenGui")
-        sg.Name = "MinimalPerfHUD"
-        sg.IgnoreGuiInset = true
-        sg.ResetOnSpawn = false
-        sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        sg.DisplayOrder = 2147483647
-        sg.Parent = uiParent
-        st.statusGui = sg
-
-        local hud = Instance.new("Frame")
-        hud.Name = "HUDContainer"
-        hud.BackgroundTransparency = 1
-        hud.AnchorPoint = Vector2.new(0.5, 0)
-        hud.Position = UDim2.new(0.5, 0, 0, 6)
-        hud.Size = UDim2.new(0, 680, 0, 60)
-        hud.Parent = sg
-
-        local btn = Instance.new("TextButton")
-        btn.Name = "CopyPosButton"
-        btn.AutoButtonColor = false
-        btn.Text = "📋"
-        btn.Font = Enum.Font.Code
-        btn.TextSize = 16
-        btn.TextColor3 = Color3.new(1, 1, 1)
-        btn.TextStrokeColor3 = Color3.new(0, 0, 0)
-        btn.TextStrokeTransparency = 0
-        btn.BackgroundColor3 = Color3.new(1, 1, 1)
-        btn.BorderSizePixel = 0
-        btn.Size = UDim2.new(0, 22, 0, 22)
-        btn.Position = UDim2.new(0, 0, 0, 0)
-        btn.Parent = hud
-
-        local lbl = Instance.new("TextLabel")
-        lbl.Name = "HUDText"
-        lbl.BackgroundTransparency = 1
-        lbl.TextColor3 = Color3.new(1, 1, 1)
-        lbl.TextStrokeColor3 = Color3.new(0, 0, 0)
-        lbl.TextStrokeTransparency = 0
-        lbl.Font = Enum.Font.Code
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.TextYAlignment = Enum.TextYAlignment.Top
-        lbl.TextWrapped = false
-        lbl.TextScaled = false
-        lbl.TextSize = 14
-        lbl.AnchorPoint = Vector2.new(0, 0)
-        lbl.Position = UDim2.new(0, 28, 0, 0)
-        lbl.Size = UDim2.new(1, -28, 1, 0)
-        lbl.RichText = false
-        lbl.Parent = hud
-
-        st.statusLabel = lbl
-
-        local locked = false
-        btn.Activated:Connect(function()
-            if locked then
-                return
-            end
-            locked = true
-            local x, y, z = getPos()
-            local txt = string.format("%d, %d, %d", sRound(x), sRound(y), sRound(z))
-            tryClipboard(txt)
-            btn.BackgroundColor3 = Color3.fromRGB(40, 170, 90)
-            btn.Text = "✅"
-            delay(2, function()
-                if not btn or not btn.Parent then
-                    return
-                end
-                btn.BackgroundColor3 = Color3.new(1, 1, 1)
-                btn.Text = "📋"
-                locked = false
-            end)
-        end)
-    end
-
-    local function updateStatus(dt)
-        if not st.statusOn or not st.statusLabel or not st.statusLabel.Parent then
-            return
-        end
-        local now = time()
-        local x, y, z = getPos()
-        local pingNow = readPing()
-        pushPing(now, pingNow)
-        st.statusFpsFrames += 1
-        if now - st.statusFpsStart >= 1 then
-            st.statusFpsNow = st.statusFpsFrames / (now - st.statusFpsStart)
-            pushFps(now, st.statusFpsNow)
-            st.statusFpsFrames = 0
-            st.statusFpsStart = now
-        end
-        local c = getChar()
-        local hum = c and c:FindFirstChildOfClass("Humanoid")
-        local spd, jmp = 0, 0
-        if hum then
-            spd = hum.WalkSpeed or 0
-            jmp = hum.JumpPower or 0
-        end
-        local txt = "pos: " .. string.format("%d, %d, %d", sRound(x), sRound(y), sRound(z))
-            .. "\nping: now:" .. string.format("%.0f", pingNow) .. " avg:" .. string.format("%.0f", avgPing())
-            .. "\nfps: now:" .. string.format("%.0f", st.statusFpsNow) .. " avg:" .. string.format("%.0f", avgFps())
-            .. "\nspeed: " .. string.format("%.0f", spd)
-            .. "\njump: " .. string.format("%.0f", jmp)
-        st.statusLabel.Text = txt
-    end
-
-    local function toggleStatus()
-        st.statusOn = not st.statusOn
-        if st.statusOn then
-            createStatusGui()
-        else
-            if st.statusGui then
-                st.statusGui:Destroy()
-                st.statusGui = nil
-                st.statusLabel = nil
-            end
-        end
-        updStatusBtn()
-    end
-
-    local function readNumber(tb, fallback)
-        local pf = tb:GetAttribute("Prefix") or ""
-        local tx = tb.Text or ""
-        local num = tx:sub(#pf + 1)
-        local v = tonumber(num)
-        if v then
-            return v
-        end
-        local last = nil
-        for n in string.gmatch(tx, "[-]?%d+%.?%d*") do
-            last = n
-        end
-        local v2 = tonumber(last)
-        if v2 then
-            return v2
-        end
-        return fallback
-    end
-
-    local function parseFogColor()
-        local tb = refs.fogColorInput
-        local pf = tb:GetAttribute("Prefix") or ""
-        local tx = tb.Text or ""
-        local v = tx:sub(#pf + 1)
-        local nums = {}
-        for n in string.gmatch(v, "%d+") do
-            nums[#nums + 1] = tonumber(n)
-        end
-        if #nums >= 3 then
-            local r = math.clamp(nums[1] or 255, 0, 255)
-            local g2 = math.clamp(nums[2] or 255, 0, 255)
-            local b2 = math.clamp(nums[3] or 255, 0, 255)
-            st.fogColor = Color3.fromRGB(r, g2, b2)
-            tb.Text = pf .. string.format("%d %d %d", r, g2, b2)
-        else
-            st.fogColor = defaultFogColor
-            tb.Text = pf .. defaultFogColorStr
-        end
-    end
-
-    local function parseFogStart()
-        local tb = refs.fogStartInput
-        local n = readNumber(tb, st.fogStart)
-        st.fogStart = n
-        local pf = tb:GetAttribute("Prefix") or ""
-        tb.Text = pf .. tostring(n)
-    end
-
-    local function parseFogEnd()
-        local tb = refs.fogEndInput
-        local n = readNumber(tb, st.fogEnd)
-        st.fogEnd = n
-        local pf = tb:GetAttribute("Prefix") or ""
-        tb.Text = pf .. tostring(n)
-    end
-
-    local function applyFullBright()
-        L.Brightness = 2
-        L.ClockTime = 14
-        L.FogEnd = 100000
-        L.GlobalShadows = false
-        L.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-    end
-
-    local function applyResetCamera()
-        local cam = ws.CurrentCamera
-        if cam then
-            cam.FieldOfView = 70
-            cam.CameraType = Enum.CameraType.Custom
-            local c = lp.Character
-            local hum = c and c:FindFirstChildOfClass("Humanoid")
-            if hum then
-                cam.CameraSubject = hum
-            end
-        end
-        lp.CameraMaxZoomDistance = 1/0
-        lp.CameraMinZoomDistance = -1/0
-        pcall(function()
-            lp.CameraMode = Enum.CameraMode.Classic
-        end)
-        pcall(function()
-            lp.DevCameraOcclusionMode = Enum.DevCameraOcclusionMode.Zoom
-        end)
-        pcall(function()
-            local ugs = UserSettings():GetService("UserGameSettings")
-            if ugs then
-                pcall(function()
-                    ugs.RotationType = Enum.RotationType.MovementRelative
-                end)
-                pcall(function()
-                    ugs.ComputerMovementMode = Enum.ComputerMovementMode.KeyboardMouse
-                end)
-                pcall(function()
-                    ugs.TouchMovementMode = Enum.TouchMovementMode.Default
-                end)
-            end
-        end)
-    end
-
-            refs.applyBodyTransparency = function(val)
-        val = tonumber(val) or 0
-        if val < 0 then
-            val = 0
-        elseif val > 1 then
-            val = 1
-        end
-        local c = getChar()
-        if not c then
-            return
-        end
-
-        local allowed = {
-            Head = true,
-            Torso = true,
-            UpperTorso = true,
-            LowerTorso = true,
-
-            ["Right Arm"] = true,
-            ["Left Arm"] = true,
-            ["Right Leg"] = true,
-            ["Left Leg"] = true,
-
-            RightUpperArm = true,
-            RightLowerArm = true,
-            RightHand = true,
-            LeftUpperArm = true,
-            LeftLowerArm = true,
-            LeftHand = true,
-
-            RightUpperLeg = true,
-            RightLowerLeg = true,
-            RightFoot = true,
-            LeftUpperLeg = true,
-            LeftLowerLeg = true,
-            LeftFoot = true
-        }
-
-        local function isAccessoryPart(p)
-            local cur = p
-            while cur and cur ~= c do
-                if cur:IsA("Accessory") then
-                    return true
-                end
-                cur = cur.Parent
-            end
-            return false
-        end
-
-        local function isAllowedPart(p)
-            if not p or not p:IsA("BasePart") then
-                return false
-            end
-            if p.Name == "HumanoidRootPart" then
-                return false
-            end
-            if allowed[p.Name] then
-                return true
-            end
-            if isAccessoryPart(p) then
-                return true
-            end
-            return false
-        end
-
-        for _, d in ipairs(c:GetDescendants()) do
-            if d:IsA("BasePart") then
-                if isAllowedPart(d) then
-                    pcall(function()
-                        d.LocalTransparencyModifier = val
-                    end)
-                    pcall(function()
-                        d.Transparency = val
-                    end)
-                end
-            elseif d:IsA("Decal") or d:IsA("Texture") then
-                local p = d.Parent
-                if p and p:IsA("BasePart") and isAllowedPart(p) then
-                    pcall(function()
-                        d.Transparency = val
-                    end)
-                end
-            end
-        end
-    end
-
-    local function applyLoops(dt)
-        local cam2 = ws.CurrentCamera
-        if st.fovLoop and cam2 then
-            cam2.FieldOfView = st.fovValue
-        end
-        if st.speedLoop then
-            local c = getChar()
-            local hum = c and c:FindFirstChildWhichIsA("Humanoid")
-            if hum then
-                hum.WalkSpeed = st.speedValue
-            end
-        end
-        if st.jumpLoop then
-            local c = getChar()
-            local hum = c and c:FindFirstChildWhichIsA("Humanoid")
-            if hum then
-                if hum.UseJumpPower ~= false then
-                    hum.UseJumpPower = true
-                    hum.JumpPower = st.jumpValue
-                else
-                    hum.JumpHeight = st.jumpValue
-                end
-            end
-        end
-        if st.maxZoomLoop and not st.noMaxZoomOn then
-            lp.CameraMaxZoomDistance = st.maxZoomValue
-        end
-        if st.minZoomLoop and not st.noMinZoomOn then
-            lp.CameraMinZoomDistance = st.minZoomValue
-        end
-        if st.noMaxZoomOn then
-            lp.CameraMaxZoomDistance = 1/0
-        end
-        if st.noMinZoomOn then
-            lp.CameraMinZoomDistance = -1/0
-        end
-        if st.gravLoop then
-            ws.Gravity = st.gravValue
-        end
-        if st.fogLoop and not st.noFogOn then
-            L.FogColor = st.fogColor
-            L.FogStart = st.fogStart
-            L.FogEnd = st.fogEnd
-        end
-        if st.noFogOn then
-            L.FogEnd = 1/0
-            for _, v in ipairs(L:GetChildren()) do
-                if v:IsA("Atmosphere") then
-                    v:Destroy()
-                end
-            end
-        end
-                        refs.shaderStep()
-        refs.snowStep(dt)
-if st.bodyTransLoopOn then
-            refs.applyBodyTransparency(st.bodyTransValue)
-        end
-if st.fullBrightLoopOn then
-            applyFullBright()
-        end
-    end
-
-    local function updateFly(dt)
-        if st.flyMode == "none" then
-            return
-        end
-        if st.desyncOn or st.desyncPosOn then
-            return
-        end
-        local c = getChar()
-        local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-        local hum = c and c:FindFirstChildOfClass("Humanoid")
-
-        if hum and st.flyMode ~= "none" and st.sitFlyOn then
-            hum.Sit = true
-        end
-        local cam2 = ws.CurrentCamera
-        if not hrp2 or not hum or not cam2 then
-            return
-        end
-
-        if st.sitFlyOn then hum.Sit = true end
-
-        local cf = cam2.CFrame
-        local look = cf.LookVector
-        local right = cf.RightVector
-        local up = cf.UpVector
-
-        if st.flyMode == "fly" then
-            if not st.flyPos then
-                st.flyPos = hrp2.Position
-            end
-
-            hrp2.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            hrp2.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-
-            local move = hum.MoveDirection
-            local dir = Vector3.new(0, 0, 0)
-
-            if move.Magnitude > 0 then
-                local localDir = cf:VectorToObjectSpace(move)
-                dir = cf.LookVector * (-localDir.Z) + cf.RightVector * localDir.X
-            end
-
-            if st.moveKeys.E then
-                dir += up
-            end
-            if st.moveKeys.Q then
-                dir -= up
-            end
-
-            if dir.Magnitude > 0 then
-                dir = dir.Unit
-                st.flyPos = st.flyPos + dir * st.flySpeed * dt
-            end
-
-            hrp2.CFrame = CFrame.new(st.flyPos)
-        elseif st.flyMode == "hover" then
-            if not st.hoverTarget then
-                st.hoverTarget = hrp2.Position
-            end
-            if not st.hoverY then
-                st.hoverY = hrp2.Position.Y
-            end
-
-            local look2 = cf.LookVector
-            local right2 = cf.RightVector
-            local flatF = Vector3.new(look2.X, 0, look2.Z)
-            local flatR = Vector3.new(right2.X, 0, right2.Z)
-            if flatF.Magnitude > 0 then
-                flatF = flatF.Unit
-            end
-            if flatR.Magnitude > 0 then
-                flatR = flatR.Unit
-            end
-            local up2 = Vector3.new(0, 1, 0)
-
-            local mv = Vector3.new(0, 0, 0)
-            if st.moveKeys.W then
-                mv += flatF
-            end
-            if st.moveKeys.S then
-                mv -= flatF
-            end
-            if st.moveKeys.D then
-                mv += flatR
-            end
-            if st.moveKeys.A then
-                mv -= flatR
-            end
-            if st.moveKeys.E then
-                mv += up2
-            end
-            if st.moveKeys.Q then
-                mv -= up2
-            end
-
-            if mv.Magnitude > 0 then
-                mv = mv.Unit * st.flySpeed * dt
-                st.hoverTarget = st.hoverTarget + mv
-                st.hoverY = st.hoverTarget.Y
-            end
-
-            createHoverAlign(hrp2)
-        elseif st.flyMode == "vel" then
-            if not st.velAnchorPos then
-                st.velAnchorPos = hrp2.Position
-            end
-
-            local move = hum.MoveDirection
-            local dir = Vector3.new(0, 0, 0)
-
-            if move.Magnitude > 0 then
-                local localDir = cf:VectorToObjectSpace(move)
-                dir = cf.LookVector * (-localDir.Z) + cf.RightVector * localDir.X
-            end
-
-            if st.moveKeys.E then
-                dir += up
-            end
-            if st.moveKeys.Q then
-                dir -= up
-            end
-
-            if dir.Magnitude > 0 then
-                dir = dir.Unit * st.flySpeed * dt
-                st.velAnchorPos = st.velAnchorPos + dir
-            end
-
-            local diff = st.velAnchorPos - hrp2.Position
-            local dist = diff.Magnitude
-            local v = Vector3.new(0, 0, 0)
-            if dist > 0 then
-                local d2 = diff / dist
-                local damp = st.velDamping or 50
-                v = d2 * dist * damp
-            end
-
-            hrp2.AssemblyLinearVelocity = v
-            hrp2.Velocity = v
-
-            local curRot = hrp2.CFrame.Rotation
-            local targetRot = cf.Rotation
-            local delta = targetRot * curRot:Inverse()
-            local axis, angle = delta:ToAxisAngle()
-            local deg = math.deg(angle)
-            local angVel = Vector3.new(0, 0, 0)
-            if deg > 0.01 then
-                local mag = deg
-                angVel = axis * mag
-            end
-            hrp2.AssemblyAngularVelocity = angVel
-            hrp2.RotVelocity = angVel
-        end
-    end
-
-    local function updateChat()
-        local desired = st.chatOn
-        local sg = S(game, "StarterGui")
-        if sg then
-            pcall(function()
-                sg:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, desired)
-            end)
-        end
-        local tcs = S(game, "TextChatService")
-        if not tcs then
-            return
-        end
-        local cfg = tcs.ChatWindowConfiguration
-        if not cfg then
-            return
-        end
-        if cfg.Enabled ~= desired then
-            cfg.Enabled = desired
-        end
-    end
-
-    refs.shaderEnable = function()
-        if st.shaderActive then
-            return
-        end
-        local terrain = ws:FindFirstChild("Terrain") or ws.Terrain
-        if not terrain then
-            return
-        end
-
-        st.shaderSaved = {
-            Brightness = L.Brightness,
-            ShadowSoftness = L.ShadowSoftness,
-            EnvironmentDiffuseScale = L.EnvironmentDiffuseScale,
-            EnvironmentSpecularScale = L.EnvironmentSpecularScale,
-            Ambient = L.Ambient,
-            OutdoorAmbient = L.OutdoorAmbient,
-            GlobalShadows = L.GlobalShadows,
-            WaterReflectance = terrain.WaterReflectance,
-            WaterTransparency = terrain.WaterTransparency
-        }
-
-        refs.shaderStore = refs.shaderStore or Instance.new("Folder")
-        refs.shaderStore.Name = "ShaderStore"
-        refs.shaderStore.Parent = gui
-
-        st.shaderStored = {}
-
-        local function storeChildren(parent, className)
-            for _, v in ipairs(parent:GetChildren()) do
-                if v.ClassName == className then
-                    st.shaderStored[#st.shaderStored + 1] = { obj = v, parent = parent }
-                    v.Parent = refs.shaderStore
-                end
-            end
-        end
-
-        storeChildren(L, "Atmosphere")
-        storeChildren(L, "Sky")
-        storeChildren(L, "BlurEffect")
-        storeChildren(L, "DepthOfFieldEffect")
-        storeChildren(L, "SunRaysEffect")
-        storeChildren(terrain, "Clouds")
-
-        refs.shaderObjs = refs.shaderObjs or {}
-
-        local function ensureObj(className, key)
-            local o = refs.shaderObjs[key]
-            if not o or not o.Parent then
-                o = Instance.new(className)
-                o.Name = key
-                refs.shaderObjs[key] = o
-            end
-            return o
-        end
-
-        ensureObj("Atmosphere", "LemeShaderAtmosphere").Parent = L
-        if refs.shaderObjs and refs.shaderObjs.LemeShaderAtmosphere then
-            local a = refs.shaderObjs.LemeShaderAtmosphere
-            a.Density = 0.25
-        end
-        ensureObj("Sky", "LemeShaderSky").Parent = L
-
-        local blur = ensureObj("BlurEffect", "LemeShaderBlur")
-        blur.Size = 4
-        blur.Parent = L
-
-        ensureObj("SunRaysEffect", "LemeShaderSunRays").Parent = L
-        ensureObj("Clouds", "LemeShaderClouds").Parent = terrain
-
-        st.shaderActive = true
-    end
-
-    refs.shaderDisable = function()
-        if not st.shaderActive then
-            return
-        end
-        local terrain = ws:FindFirstChild("Terrain") or ws.Terrain
-        if terrain and st.shaderSaved then
-            L.Brightness = st.shaderSaved.Brightness
-            L.ShadowSoftness = st.shaderSaved.ShadowSoftness
-            L.EnvironmentDiffuseScale = st.shaderSaved.EnvironmentDiffuseScale
-            L.EnvironmentSpecularScale = st.shaderSaved.EnvironmentSpecularScale
-            L.Ambient = st.shaderSaved.Ambient
-            L.OutdoorAmbient = st.shaderSaved.OutdoorAmbient
-            L.GlobalShadows = st.shaderSaved.GlobalShadows
-            terrain.WaterReflectance = st.shaderSaved.WaterReflectance
-            terrain.WaterTransparency = st.shaderSaved.WaterTransparency
-        end
-
-        if refs.shaderObjs then
-            for _, o in pairs(refs.shaderObjs) do
-                if typeof(o) == "Instance" then
-                    pcall(function()
-                        o:Destroy()
-                    end)
-                end
-            end
-        end
-        refs.shaderObjs = nil
-
-        if st.shaderStored and refs.shaderStore then
-            for _, item in ipairs(st.shaderStored) do
-                if item and item.obj and typeof(item.obj) == "Instance" and item.parent then
-                    pcall(function()
-                        item.obj.Parent = item.parent
-                    end)
-                end
-            end
-        end
-        st.shaderStored = nil
-
-        if refs.shaderStore then
-            pcall(function()
-                refs.shaderStore:Destroy()
-            end)
-        end
-        refs.shaderStore = nil
-        st.shaderSaved = nil
-        st.shaderActive = false
-    end
-
-    refs.shaderApplyFrame = function()
-        if not st.shaderActive then
-            return
-        end
-        local terrain = ws:FindFirstChild("Terrain") or ws.Terrain
-        if not terrain then
-            return
-        end
-
-        if refs.shaderObjs and refs.shaderStore then
-            local function moveIfOther(parent, className, keep)
-                for _, v in ipairs(parent:GetChildren()) do
-                    if v.ClassName == className and v ~= keep then
-                        st.shaderStored = st.shaderStored or {}
-                        st.shaderStored[#st.shaderStored + 1] = { obj = v, parent = parent }
-                        v.Parent = refs.shaderStore
-                    end
-                end
-            end
-
-            moveIfOther(L, "Atmosphere", refs.shaderObjs.LemeShaderAtmosphere)
-            moveIfOther(L, "Sky", refs.shaderObjs.LemeShaderSky)
-            moveIfOther(L, "BlurEffect", refs.shaderObjs.LemeShaderBlur)
-            moveIfOther(L, "DepthOfFieldEffect", nil)
-            moveIfOther(L, "SunRaysEffect", refs.shaderObjs.LemeShaderSunRays)
-            moveIfOther(terrain, "Clouds", refs.shaderObjs.LemeShaderClouds)
-        end
-
-        if not refs.shaderObjs or not refs.shaderObjs.LemeShaderBlur then
-            st.shaderActive = false
-            refs.shaderEnable()
-        end
-
-        L.Brightness = 4
-        L.ShadowSoftness = 0
-        L.EnvironmentDiffuseScale = 0.202
-        L.EnvironmentSpecularScale = 0.202
-        L.Ambient = Color3.fromRGB(64, 72, 79)
-        L.OutdoorAmbient = Color3.fromRGB(64, 72, 79)
-        L.GlobalShadows = true
-
-        terrain.WaterReflectance = 1
-        terrain.WaterTransparency = 1
-
-        if refs.shaderObjs and refs.shaderObjs.LemeShaderBlur then
-            refs.shaderObjs.LemeShaderBlur.Size = 4
-        end
-        if refs.shaderObjs and refs.shaderObjs.LemeShaderAtmosphere then
-            refs.shaderObjs.LemeShaderAtmosphere.Density = 0.25
-        end
-    end
-
-    refs.shaderStep = function()
-        if st.shaderOn then
-            if not st.shaderActive then
-                refs.shaderEnable()
-            end
-            refs.shaderApplyFrame()
-        else
-            if st.shaderActive then
-                refs.shaderDisable()
-            end
-        end
-    end    refs.snowEnable = function()
-        if st.snowActive then
-            return
-        end
-        local cam = ws.CurrentCamera
-        if not cam then
-            return
-        end
-
-        if not refs.snowPart or not refs.snowPart.Parent then
-            refs.snowPart = Instance.new("Part")
-            refs.snowPart.Name = "LemeSnowPart"
-            refs.snowPart.Anchored = true
-            refs.snowPart.CanCollide = false
-            refs.snowPart.CanTouch = false
-            refs.snowPart.CanQuery = false
-            refs.snowPart.Transparency = 1
-            refs.snowPart.Size = Vector3.new(200, 1, 200)
-            refs.snowPart.Shape = Enum.PartType.Block
-            refs.snowPart.Massless = true
-            refs.snowPart.Parent = ws
-        end
-
-        if not refs.snowEmitter or not refs.snowEmitter.Parent then
-            refs.snowEmitter = Instance.new("ParticleEmitter")
-            refs.snowEmitter.Name = "LemeSnowEmitter"
-            refs.snowEmitter.Parent = refs.snowPart
-        end
-
-        refs.snowEmitter.Enabled = true
-        refs.snowEmitter.Rate = 0
-        refs.snowEmitter.Lifetime = NumberRange.new(7, 10)
-        refs.snowEmitter.Speed = NumberRange.new(12, 20)
-        refs.snowEmitter.RotSpeed = NumberRange.new(-60, 60)
-        refs.snowEmitter.Rotation = NumberRange.new(0, 360)
-        refs.snowEmitter.SpreadAngle = Vector2.new(0, 0)
-        refs.snowEmitter.EmissionDirection = Enum.NormalId.Bottom
-        refs.snowEmitter.Acceleration = Vector3.new(0, 0, 0)
-        refs.snowEmitter.Drag = 0
-        refs.snowEmitter.LockedToPart = false
-        refs.snowEmitter.VelocityInheritance = 0
-        refs.snowEmitter.LightEmission = 1
-        refs.snowEmitter.LightInfluence = 0
-        refs.snowEmitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-        refs.snowEmitter.Size = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.35),
-            NumberSequenceKeypoint.new(1, 0.15)
-        })
-        refs.snowEmitter.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0),
-            NumberSequenceKeypoint.new(1, 0.35)
-        })
-        refs.snowEmitter.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
-
-        st.snowActive = true
-    end
-
-    refs.snowDisable = function()
-        if not st.snowActive then
-            return
-        end
-        if refs.snowEmitter then
-            pcall(function()
-                refs.snowEmitter.Enabled = false
-            end)
-            pcall(function()
-                refs.snowEmitter:Destroy()
-            end)
-        end
-        refs.snowEmitter = nil
-
-        if refs.snowPart then
-            pcall(function()
-                refs.snowPart:Destroy()
-            end)
-        end
-        refs.snowPart = nil
-        if st.snowFogSaved then
-            L.FogStart = st.snowFogSaved.FogStart
-            L.FogEnd = st.snowFogSaved.FogEnd
-            L.FogColor = st.snowFogSaved.FogColor
-            st.snowFogSaved = nil
-        end
-        st.snowActive = false
-    end
-
-    refs.snowApplyFrame = function(dt)
-        if not st.snowActive then
-            return
-        end
-        local cam = ws.CurrentCamera
-        if not cam then
-            return
-        end
-        if not refs.snowPart or not refs.snowPart.Parent then
-            st.snowActive = false
-            refs.snowEnable()
-            return
-        end
-        if not refs.snowEmitter or not refs.snowEmitter.Parent then
-            st.snowActive = false
-            refs.snowEnable()
-            return
-        end
-
-        local basePos = cam.CFrame.Position + Vector3.new(0, 50, 0)
-
-        if not st.snowFogSaved then
-            st.snowFogSaved = { FogStart = L.FogStart, FogEnd = L.FogEnd, FogColor = L.FogColor }
-        end
-        L.FogColor = Color3.fromRGB(235, 238, 240)
-        L.FogStart = 0
-        L.FogEnd = 1000
-
-        local d = tonumber(dt) or (1 / 60)
-        local perSec = 1000
-        if perSec < 0 then
-            perSec = 0
-        elseif perSec > 5000 then
-            perSec = 5000
-        end
-
-        st.snowEmitAcc = (tonumber(st.snowEmitAcc) or 0) + (perSec * d)
-        local emitCount = math.floor(st.snowEmitAcc)
-        st.snowEmitAcc = st.snowEmitAcc - emitCount
-        if emitCount > 250 then
-            emitCount = 250
-            st.snowEmitAcc = 0
-        end
-
-        local cos30 = 0.8660254037844386
-        local sin30 = 0.5
-
-        for i = 1, emitCount do
-            local theta = math.random() * (math.pi * 2)
-            local dir = Vector3.new(sin30 * math.cos(theta), -cos30, sin30 * math.sin(theta))
-            local up = -dir
-
-            local right = up:Cross(Vector3.new(0, 0, 1))
-            if right.Magnitude < 0.001 then
-                right = up:Cross(Vector3.new(1, 0, 0))
-            end
-            right = right.Unit
-            local back = right:Cross(up).Unit
-
-            refs.snowPart.CFrame = CFrame.fromMatrix(basePos, right, up, back)
-            refs.snowEmitter:Emit(1)
-        end
-    end
-
-    refs.snowStep = function(dt)
-        if st.snowOn then
-            if not st.snowActive then
-                refs.snowEnable()
-            end
-            refs.snowApplyFrame(dt)
-        else
-            if st.snowActive then
-                refs.snowDisable()
-            end
-        end
-    end
-
-    local function parseTpPos()
-        local tb = refs.tpPosInput
-        local pf = tb:GetAttribute("Prefix") or ""
-        local tx = tb.Text or ""
-        local body = tx:sub(#pf + 1)
-        local nums = {}
-        for token in string.gmatch(body, "[^%s]+") do
-            local v = tonumber(token)
-            if v then
-                nums[#nums + 1] = v
-            end
-        end
-        if #nums >= 3 then
-            local x, y, z = nums[1], nums[2], nums[3]
-            st.tpPos = Vector3.new(x, y, z)
-            tb.Text = pf .. formatInit(x) .. " " .. formatInit(y) .. " " .. formatInit(z)
-        end
-    end
-
-    local function toggleNoMaxZoom()
-        st.noMaxZoomOn = not st.noMaxZoomOn
-        if st.noMaxZoomOn then
-            st.noMaxZoomSaved = lp.CameraMaxZoomDistance
-            if st.maxZoomLoop then
-                st.maxZoomLoop = false
-                updLoopMaxZoomBtn()
-            end
-        else
-            if st.noMaxZoomSaved ~= nil then
-                lp.CameraMaxZoomDistance = st.noMaxZoomSaved
-            end
-        end
-        updNoMaxZoomBtn()
-    end
-
-    local function toggleNoMinZoom()
-        st.noMinZoomOn = not st.noMinZoomOn
-        if st.noMinZoomOn then
-            st.noMinZoomSaved = lp.CameraMinZoomDistance
-            if st.minZoomLoop then
-                st.minZoomLoop = false
-                updLoopMinZoomBtn()
-            end
-        else
-            if st.noMinZoomSaved ~= nil then
-                lp.CameraMinZoomDistance = st.noMinZoomSaved
-            end
-        end
-        updNoMinZoomBtn()
-    end
-
-    local function updateFlingTargetFromInput()
-        local tb = refs.flingTargetInput
-        if not tb then
-            return
-        end
-        local pf = tb:GetAttribute("Prefix") or ""
-        local tx = tb.Text or ""
-        local body = tx:sub(#pf + 1)
-        body = body:gsub("^%s+", ""):gsub("%s+$", "")
-        if body == "" then
-            st.flingTarget = nil
-            if type(g.LemeGUIV2_AutoAntiUpdateBtn) == "function" then
-            g.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
-        end
-        if type(g.LemeGUIV2_AutoAntiRefreshUI) == "function" then
-            g.LemeGUIV2_AutoAntiRefreshUI(refs, st)
-        end
-        updFlingTargetDisplay()
-            return
-        end
-        local lower = string.lower(body)
-        local candidates = {}
-        for _, pl in ipairs(P:GetPlayers()) do
-            if pl ~= lp and pl.Name and string.find(string.lower(pl.Name), lower, 1, true) then
-                candidates[#candidates + 1] = pl
-            end
-        end
-        local target = nil
-        if #candidates == 1 then
-            target = candidates[1]
-        elseif #candidates == 0 then
-            local c2 = {}
-            for _, pl in ipairs(P:GetPlayers()) do
-                if pl ~= lp and pl.DisplayName and string.find(string.lower(pl.DisplayName), lower, 1, true) then
-                    c2[#c2 + 1] = pl
-                end
-            end
-            if #c2 == 1 then
-                target = c2[1]
-            end
-        end
-        st.flingTarget = target
-        if type(g.LemeGUIV2_AutoAntiUpdateBtn) == "function" then
-            g.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
-        end
-        if type(g.LemeGUIV2_AutoAntiRefreshUI) == "function" then
-            g.LemeGUIV2_AutoAntiRefreshUI(refs, st)
-        end
-        updFlingTargetDisplay()
-    end
-
-    local function parseDesyncPosInput()
-        local tb = refs.desyncPosInput
-        if not tb then
-            return
-        end
-        local pf = tb:GetAttribute("Prefix") or ""
-        local tx = tb.Text or ""
-        local body = tx:sub(#pf + 1)
-        local nums = {}
-        for token in string.gmatch(body, "[^%s]+") do
-            local v = tonumber(token)
-            if v then
-                nums[#nums + 1] = v
-            end
-        end
-        if #nums >= 3 then
-            local x, y, z = nums[1], nums[2], nums[3]
-            st.desyncPosTarget = Vector3.new(x, y, z)
-            tb.Text = pf .. formatInit(x) .. " " .. formatInit(y) .. " " .. formatInit(z)
-        else
-            st.desyncPosTarget = nil
-        end
-    end
-
-    local function stylizeDesyncPart(part)
-        part.Anchored = false
-        part.CanCollide = false
-        pcall(function()
-            part.CanTouch = false
-        end)
-        pcall(function()
-            part.CanQuery = false
-        end)
-        part.Massless = true
-        part.Material = Enum.Material.ForceField
-        part.Color = Color3.new(1, 0, 0)
-    end
-
-    local function createDesyncDummy(original)
-        if st.desyncDummy then
-            st.desyncDummy:Destroy()
-            st.desyncDummy = nil
-            st.desyncDummyRoot = nil
-            st.desyncDummyMotorMap = {}
-            st.desyncSourceChar = nil
-        end
-        if not original then
-            return
-        end
-        if not original.Archivable then
-            original.Archivable = true
-        end
-        local d = original:Clone()
-        d.Name = "DesyncDummy"
-        d.Parent = ws
-        st.desyncDummy = d
-        st.desyncSourceChar = original
-        st.desyncDummyMotorMap = {}
-        for _, v in ipairs(d:GetDescendants()) do
-            if v:IsA("BasePart") then
-                stylizeDesyncPart(v)
-            elseif v:IsA("Humanoid") then
-                v.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-            elseif v:IsA("Script") or v:IsA("LocalScript") then
-                v:Destroy()
-            elseif v:IsA("Animator") or v:IsA("AnimationController") then
-                v:Destroy()
-            elseif v:IsA("Motor6D") then
-                local origMotor = original:FindFirstChild(v.Name, true)
-                if origMotor and origMotor:IsA("Motor6D") then
-                    st.desyncDummyMotorMap[v] = origMotor
-                end
-            end
-        end
-        st.desyncDummyRoot = d:FindFirstChild("HumanoidRootPart")
-    end
-
-    local function applyDesyncMaterials()
-        local char = lp.Character
-        if not char then
-            return
-        end
-        local saved = st.desyncMaterialSaved
-        for _, v in ipairs(char:GetDescendants()) do
-            if v:IsA("BasePart") then
-                if saved[v] == nil then
-                    saved[v] = v.Material
-                end
-                if v.Material ~= Enum.Material.ForceField then
-                    v.Material = Enum.Material.ForceField
-                end
-            end
-        end
-    end
-
-    local function restoreDesyncMaterials()
-        local saved = st.desyncMaterialSaved
-        for part, mat in pairs(saved) do
-            if part and part.Parent then
-                part.Material = mat
-            end
-        end
-        for k in pairs(saved) do
-            saved[k] = nil
-        end
-    end
-
-    local function resetDesyncChar()
-        local char = lp.Character
-        if not char then
-            return
-        end
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then
-            return
-        end
-        if st.desyncRealCF then
-            root.CFrame = st.desyncRealCF
-        end
-        if st.desyncRealVel then
-            root.AssemblyLinearVelocity = st.desyncRealVel
-        end
-        if st.desyncRealRotVel then
-            root.AssemblyAngularVelocity = st.desyncRealRotVel
-        end
-    end
-
-    local function updateDesync()
-        if not (st.desyncOn or st.desyncPosOn or st.desyncDirOn) then
-            return
-        end
-        local char = lp.Character
-        if not char then
-            return
-        end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not hum or not root then
-            return
-        end
-
-        if st.desyncSourceChar ~= char or not st.desyncDummy or not st.desyncDummy.Parent then
-            createDesyncDummy(char)
-        end
-
-        local curCF = root.CFrame
-        if st.desyncOn then
-            if not st.desyncSavedCF then
-                st.desyncSavedCF = curCF
-            end
-        elseif st.desyncPosOn then
-            local pos2 = st.desyncPosTarget
-            if pos2 then
-                st.desyncSavedCF = CFrame.new(pos2, pos2 + curCF.LookVector)
-            else
-                st.desyncSavedCF = curCF
-            end
-        else
-            st.desyncSavedCF = curCF
-        end
-
-        local savedCF = st.desyncSavedCF
-        if not savedCF then
-            return
-        end
-
-        if st.desyncDirOn then
-            local roll = (st.desyncDirRollOn and readNumber(refs.desyncDirRollInput, st.desyncDirRollDeg) or 0)
-            local pitch = (st.desyncDirPitchOn and readNumber(refs.desyncDirPitchInput, st.desyncDirPitchDeg) or 0)
-            local yaw = (st.desyncDirYawOn and readNumber(refs.desyncDirYawInput, st.desyncDirYawDeg) or 0)
-            st.desyncDirRollDeg = roll
-            st.desyncDirPitchDeg = pitch
-            st.desyncDirYawDeg = yaw
-            local rot = CFrame.Angles(math.rad(pitch), math.rad(yaw), math.rad(roll))
-            savedCF = savedCF * rot
-        end
-
-        st.desyncRealCF = root.CFrame
-        st.desyncRealVel = root.AssemblyLinearVelocity
-        st.desyncRealRotVel = root.AssemblyAngularVelocity
-
-        root.CFrame = savedCF
-        root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        root.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-
-        local dRoot = st.desyncDummyRoot
-        if dRoot and dRoot.Parent then
-            dRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            dRoot.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            dRoot.CFrame = savedCF
-            for dMotor, oMotor in pairs(st.desyncDummyMotorMap) do
-                if dMotor.Parent and oMotor.Parent then
-                    dMotor.Transform = oMotor.Transform
-                end
-            end
-        end
-
-        applyDesyncMaterials()
-    end
-
-    local function startFling()
-        if st.flingRunning then
-            return
-        end
-        local now = time()
-        if now < (st.flingCooldownEnd or 0) then
-            return
-        end
-        local target = st.flingTarget
-        if not target then
-            return
-        end
-        local tChar = target.Character
-        local tHRP = tChar and tChar:FindFirstChild("HumanoidRootPart")
-        if not tHRP then
-            return
-        end
-        local c = getChar()
-        local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-        if not hrp2 then
-            return
-        end
-
-        st.flingRunning = true
-        st.flingCooldownEnd = now + 3
-
-        local prevTouch = st.touchFlingOn
-        if not prevTouch then
-            toggleTouchFling()
-        end
-
-        local startCFrame = hrp2.CFrame
-        local startAV = hrp2.AssemblyAngularVelocity
-        local startLV = hrp2.AssemblyLinearVelocity
-        local startRV = hrp2.RotVelocity
-        local startV = hrp2.Velocity
-
-        local startTime = time()
-        while not destroyed and time() - startTime < 3 do
-            R.Heartbeat:Wait()
-            tChar = target.Character
-            tHRP = tChar and tChar:FindFirstChild("HumanoidRootPart")
-            c = getChar()
-            hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-            if not tHRP or not hrp2 then
-                break
-            end
-            local tPos = tHRP.Position
-            local tVel = tHRP.AssemblyLinearVelocity
-            local center = tPos + tVel * 0.5
-
-            local r = 5 * math.pow(math.random(), 1/3)
-            local uRand = math.random()
-            local vRand = math.random()
-            local theta = math.acos(2 * uRand - 1)
-            local phi = 2 * math.pi * vRand
-            local sinT = math.sin(theta)
-            local offset = Vector3.new(
-                r * sinT * math.cos(phi),
-                r * math.cos(theta),
-                r * sinT * math.sin(phi)
-            )
-
-            local pos = center + offset
-            local randCF = CFrame.fromEulerAnglesXYZ(
-                math.random() * math.pi * 2,
-                math.random() * math.pi * 2,
-                math.random() * math.pi * 2
-            )
-            hrp2.CFrame = CFrame.new(pos) * randCF
-        end
-
-        c = getChar()
-        local hrpNow = c and c:FindFirstChild("HumanoidRootPart")
-        if hrpNow then
-            hrpNow.CFrame = startCFrame
-            hrpNow.AssemblyAngularVelocity = startAV
-            hrpNow.AssemblyLinearVelocity = startLV
-            hrpNow.RotVelocity = startRV
-            hrpNow.Velocity = startV
-        end
-
-        if not prevTouch and st.touchFlingOn then
-            toggleTouchFling()
-        end
-
-        st.flingRunning = false
-    end
-
-    local function runUrl(url)
-        local ok, res = pcall(function()
-            return game:HttpGet(url)
-        end)
-        if not ok or type(res) ~= "string" then
-            return
-        end
-        local fn = loadstring(res)
-        if not fn then
-            return
-        end
-        pcall(fn)
-    end
-
-    local isPC = (U.KeyboardEnabled == true)
-
-    if not isPC then
-        if refs.smartFlyBtn then
-            refs.smartFlyBtn.Visible = false
-        end
-        if refs.smartFlyTrigBtn then
-            refs.smartFlyTrigBtn.Visible = false
-        end
-        if refs.smartResetBtn then
-            refs.smartResetBtn.Visible = false
-        end
-        if refs.smartResetTrigBtn then
-            refs.smartResetTrigBtn.Visible = false
-        end
-    end
-
-    local hbConn = addConn(R.RenderStepped:Connect(function(dt)
-        if destroyed then
-            return
-        end
-        local am = st.autoAntiMask
-        if am and am ~= 0 then
-            if bit32.band(am, 1) ~= 0 and not st.antiVoidOn then
-                toggleAntiVoid()
-            end
-            if bit32.band(am, 2) ~= 0 and not st.antiAfkOn then
-                toggleAntiAfk()
-            end
-            if bit32.band(am, 4) ~= 0 and not st.antiFlingOn then
-                toggleAntiFling()
-            end
-        end
-        updateAntiVoid()
-        updateAntiFling()
-        updateStatus(dt)
-        applyLoops(dt)
-        updateChat()
-        if st.loopKillOn then
-            local c = getChar()
-            local hum = c and c:FindFirstChildWhichIsA("Humanoid")
-            if hum then
-                local hs = hum:GetState()
-                if hs ~= Enum.HumanoidStateType.Dead then
-                    hum:ChangeState(Enum.HumanoidStateType.Dead)
-                end
-            end
-        end
-        local diff = targetBtnX - btnX
-        if math.abs(diff) > 1e-4 then
-            local a = math.clamp(dt * 6, 0, 1)
-            btnX = btnX + diff * a
-            local tPos = refs.toggle.Position
-            local mPos = refs.main.Position
-            refs.toggle.Position = UDim2.new(btnX, 0, tPos.Y.Scale, tPos.Y.Offset)
-            refs.main.Position = UDim2.new(btnX, 0, mPos.Y.Scale, mPos.Y.Offset)
-        end
-    end))
-
-    addConn(R.Heartbeat:Connect(function(dt)
-        if destroyed then
-            return
-        end
-        updateAntiFling()
-        updateTpWalk(dt)
-        updateDesync()
-        updateFly(dt)
-        updateEsp(dt)
-    end))
-
-    addConn(R.RenderStepped:Connect(function()
-        if destroyed then
-            return
-        end
-        if not (st.desyncOn or st.desyncPosOn or st.desyncDirOn) then
-            return
-        end
-        local d = st.desyncDummy
-        if not d or not d.Parent then
-            return
-        end
-        for _, v in ipairs(d:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.CanCollide = false
-                pcall(function()
-                    v.CanTouch = false
-                end)
-                pcall(function()
-                    v.CanQuery = false
-                end)
-            end
-        end
-    end))
-
-    addConn(R.RenderStepped:Connect(function()
-        if destroyed then
-            return
-        end
-        if not st.tpOn then
-            return
-        end
-        local c = getChar()
-        local hum = c and c:FindFirstChildWhichIsA("Humanoid")
-        if hum then
-            hum.WalkSpeed = 0
-        end
-    end))
-
-    addConn(R.RenderStepped:Connect(function()
-        if destroyed then
-            return
-        end
-
-        if st.resetCamLoopOn then
-            local cam2 = ws.CurrentCamera
-            local cf = cam2 and cam2.CFrame
-            applyResetCamera()
-            if cam2 and cf then
-            end
-        end
-
-        local c = getChar()
-        local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-        local cam2 = ws.CurrentCamera
-        if not c or not hrp2 or not cam2 then
-            return
-        end
-        if st.flyMode == "fly" and not (st.desyncOn or st.desyncPosOn) then
-            local cf = cam2.CFrame
-            local rx, ry = cf:ToOrientation()
-            local pos = hrp2.Position
-            hrp2.CFrame = CFrame.new(pos) * CFrame.fromOrientation(rx, ry, 0)
-        end
-    end))
-
-    R:BindToRenderStep("Leme_DesyncRevert", Enum.RenderPriority.Camera.Value - 1, function()
-        if destroyed then
-            return
-        end
-        if not (st.desyncOn or st.desyncPosOn or st.desyncDirOn) then
-            return
-        end
-        local char = lp.Character
-        if not char then
-            return
-        end
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then
-            return
-        end
-        if not st.desyncRealCF or not st.desyncRealVel or not st.desyncRealRotVel then
-            return
-        end
-        root.CFrame = st.desyncRealCF
-        root.AssemblyLinearVelocity = st.desyncRealVel
-        root.AssemblyAngularVelocity = st.desyncRealRotVel
-    end)
-
-    addConn(R.RenderStepped:Connect(function()
-        if destroyed then
-            return
-        end
-        if not st.noclipOn then
-            return
-        end
-        local c = getChar()
-        if not c then
-            return
-        end
-        for _, ch in ipairs(c:GetDescendants()) do
-            if ch:IsA("BasePart") and ch.CanCollide == true and ch.Name ~= FLOAT_NAME then
-                ch.CanCollide = false
-            end
-        end
-    end))
-
-    addConn(U.JumpRequest:Connect(function()
-        if destroyed then
-            return
-        end
-        if not st.flyJumpOn then
-            return
-        end
-        local c = getChar()
-        local hum = c and c:FindFirstChildWhichIsA("Humanoid")
-        if hum then
-            hum:ChangeState(Enum.HumanoidStateType.Jumping)
-        end
-    end))
-
-    addConn(lp.CharacterAdded:Connect(function(newChar)
-        wait(0.1)
-        if st.noclipOn then
-            cacheNoclip()
-        end
-        if st.flyMode ~= "none" then
-            st.flyPos = nil
-            st.hoverTarget = nil
-            st.hoverY = nil
-            st.velAnchorPos = nil
-            removeHoverAlign()
-        end
-        if st.anchorOn and st.anchorData and st.anchorData.frozen and not st.anchorData.unfrozenOnce then
-            local c = newChar or getChar()
-            local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-            local hum = c and c:FindFirstChildOfClass("Humanoid")
-            if hrp2 and hum then
-                st.anchorData.char = c
-                st.anchorData.hrp = hrp2
-                st.anchorData.hum = hum
-                hrp2.AssemblyAngularVelocity = Vector3.zero
-                hrp2.AssemblyLinearVelocity = Vector3.zero
-                hrp2.RotVelocity = Vector3.zero
-                hrp2.Velocity = Vector3.zero
-                hrp2.CFrame = st.anchorData.freezeCF or hrp2.CFrame
-            end
-        end
-    end))
-
-    addConn(P.PlayerRemoving:Connect(function(pl)
-        if st.flingTarget == pl then
-            st.flingTarget = nil
-            if type(g.LemeGUIV2_AutoAntiUpdateBtn) == "function" then
-            g.LemeGUIV2_AutoAntiUpdateBtn(refs, st)
-        end
-        if type(g.LemeGUIV2_AutoAntiRefreshUI) == "function" then
-            g.LemeGUIV2_AutoAntiRefreshUI(refs, st)
-        end
-        updFlingTargetDisplay()
-        end
-    end))
-
-    addConn(ws.ChildRemoved:Connect(function(c)
-        if destroyed then
-            return
-        end
-        if c == st.desyncDummy then
-            st.desyncDummy = nil
-            st.desyncDummyRoot = nil
-            st.desyncDummyMotorMap = {}
-            st.desyncSourceChar = nil
-        end
-    end))
-
-    refs.rejoinBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        rejoin()
-    end)
-
-    api.buttonActions["killSelfBtn"] = function()
-        if destroyed then
-            return
-        end
-        killSelf()
-    end
-    refs.killSelfBtn.Activated:Connect(api.buttonActions["killSelfBtn"])
-
-    refs.loopKillBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.loopKillOn = not st.loopKillOn
-        updLoopKillBtn()
-    end)
-
-    api.buttonActions["antiAfkBtn"] = function()
-        if destroyed then
-            return
-        end
-        toggleAntiAfk()
-    end
-    refs.antiAfkBtn.Activated:Connect(api.buttonActions["antiAfkBtn"])
-
-    refs.noclipBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleNoclip()
-    end)
-
-    refs.tpWalkBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleTpWalk()
-    end)
-
-    refs.anchorBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleAnchor()
-    end)
-
-    refs.antiVoidBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleAntiVoid()
-    end)
-
-    refs.antiFlingBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleAntiFling()
-    end)
-
-    refs.autoAntiBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        if type(g.LemeGUIV2_OpenAutoAntiDialog) == "function" then
-            g.LemeGUIV2_OpenAutoAntiDialog(refs, st, gui)
-        end
-    end)
-
-    refs.touchFlingBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleTouchFling()
-    end)
-
-    refs.flyJumpBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleFlyJump()
-    end)
-
-    refs.flyBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        setFlyMode("fly")
-    end)
-
-    refs.hoverBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        setFlyMode("hover")
-    end)
-
-    refs.velBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        setFlyMode("vel")
-    end)
-
-    refs.sitFlyBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.sitFlyOn = not st.sitFlyOn
-        updSitFlyBtn()
-    end)
-
-    refs.espBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleESP()
-    end)
-
-    refs.miniEspBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleMiniESP()
-    end)
-
-    refs.statusBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleStatus()
-    end)
-
-    refs.chatBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.chatOn = not st.chatOn
-        updChatBtn()
-    end)
-
-refs.shaderBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.shaderOn = not st.shaderOn
-        refs.updShaderBtn()
-    end)
-
-refs.snowBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.snowOn = not st.snowOn
-        refs.updSnowBtn()
-    end)
-    api.buttonActions["instantPromptBtn"] = function()
-        if destroyed then
-            return
-        end
-        local function apply(prompt)
-            if prompt:IsA("ProximityPrompt") then
-                prompt.HoldDuration = 0
-            end
-        end
-        for _, descendant in ipairs(workspace:GetDescendants()) do
-            apply(descendant)
-        end
-        workspace.DescendantAdded:Connect(apply)
-    end
-    refs.instantPromptBtn.Activated:Connect(api.buttonActions["instantPromptBtn"])
-
-    api.buttonActions["setFovBtn"] = function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.fovInput, st.fovValue)
-        if n and n > 0 then
-            st.fovValue = n
-        end
-        local pf = refs.fovInput:GetAttribute("Prefix") or ""
-        refs.fovInput.Text = pf .. tostring(st.fovValue)
-        local cam2 = ws.CurrentCamera
-        if cam2 then
-            cam2.FieldOfView = st.fovValue
-        end
-    end
-    refs.setFovBtn.Activated:Connect(api.buttonActions["setFovBtn"])
-
-    refs.loopFovBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.fovLoop = not st.fovLoop
-        updLoopFovBtn()
-    end)
-
-    refs.fovInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.fovInput, st.fovValue)
-        if n and n > 0 then
-            st.fovValue = n
-        end
-        local pf = refs.fovInput:GetAttribute("Prefix") or ""
-        refs.fovInput.Text = pf .. tostring(st.fovValue)
-    end)
-
-    api.buttonActions["setSpeedBtn"] = function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.speedInput, st.speedValue)
-        if n and n > 0 then
-            st.speedValue = n
-        end
-        local pf = refs.speedInput:GetAttribute("Prefix") or ""
-        refs.speedInput.Text = pf .. tostring(st.speedValue)
-        local c = getChar()
-        local hum = c and c:FindFirstChildWhichIsA("Humanoid")
-        if hum then
-            hum.WalkSpeed = st.speedValue
-        end
-    end
-    refs.setSpeedBtn.Activated:Connect(api.buttonActions["setSpeedBtn"])
-
-    refs.loopSpeedBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.speedLoop = not st.speedLoop
-        updLoopSpeedBtn()
-    end)
-
-    refs.speedInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.speedInput, st.speedValue)
-        if n and n > 0 then
-            st.speedValue = n
-        end
-        local pf = refs.speedInput:GetAttribute("Prefix") or ""
-        refs.speedInput.Text = pf .. tostring(st.speedValue)
-    end)
-
-    api.buttonActions["setJumpBtn"] = function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.jumpInput, st.jumpValue)
-        if n and n > 0 then
-            st.jumpValue = n
-        end
-        local pf = refs.jumpInput:GetAttribute("Prefix") or ""
-        refs.jumpInput.Text = pf .. tostring(st.jumpValue)
-        local c = getChar()
-        local hum = c and c:FindFirstChildWhichIsA("Humanoid")
-        if hum then
-            if hum.UseJumpPower ~= false then
-                hum.UseJumpPower = true
-                hum.JumpPower = st.jumpValue
-            else
-                hum.JumpHeight = st.jumpValue
-            end
-        end
-    end
-    refs.setJumpBtn.Activated:Connect(api.buttonActions["setJumpBtn"])
-
-    refs.loopJumpBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.jumpLoop = not st.jumpLoop
-        updLoopJumpBtn()
-    end)
-
-    refs.jumpInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.jumpInput, st.jumpValue)
-        if n and n > 0 then
-            st.jumpValue = n
-        end
-        local pf = refs.jumpInput:GetAttribute("Prefix") or ""
-        refs.jumpInput.Text = pf .. tostring(st.jumpValue)
-    end)
-
-    api.buttonActions["setGravBtn"] = function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.gravInput, st.gravValue)
-        if n then
-            st.gravValue = n
-        end
-        local pf = refs.gravInput:GetAttribute("Prefix") or ""
-        refs.gravInput.Text = pf .. tostring(st.gravValue)
-        ws.Gravity = st.gravValue
-    end
-    refs.setGravBtn.Activated:Connect(api.buttonActions["setGravBtn"])
-
-    refs.loopGravBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.gravLoop = not st.gravLoop
-        updLoopGravBtn()
-    end)
-
-    refs.gravInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.gravInput, st.gravValue)
-        if n then
-            st.gravValue = n
-        end
-        local pf = refs.gravInput:GetAttribute("Prefix") or ""
-        refs.gravInput.Text = pf .. tostring(st.gravValue)
-    end)
-    refs.setBodyTransBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        refs.applyBodyTransparency(st.bodyTransValue)
-    end)
-
-    refs.loopBodyTransBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.bodyTransLoopOn = not st.bodyTransLoopOn
-        refs.updLoopBodyTransBtn()
-    end)
-
-    refs.bodyTransInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.bodyTransInput, st.bodyTransValue)
-        if n then
-            st.bodyTransValue = n
-        end
-        local pf = refs.bodyTransInput:GetAttribute("Prefix") or ""
-        refs.bodyTransInput.Text = pf .. tostring(st.bodyTransValue)
-    end)
-
-    api.buttonActions["setMaxZoomBtn"] = function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.maxZoomInput, st.maxZoomValue)
-        if n and n >= 0 then
-            st.maxZoomValue = n
-        end
-        local pf = refs.maxZoomInput:GetAttribute("Prefix") or ""
-        refs.maxZoomInput.Text = pf .. tostring(st.maxZoomValue)
-        lp.CameraMaxZoomDistance = st.maxZoomValue
-    end
-    refs.setMaxZoomBtn.Activated:Connect(api.buttonActions["setMaxZoomBtn"])
-
-    refs.loopMaxZoomBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.maxZoomLoop = not st.maxZoomLoop
-        updLoopMaxZoomBtn()
-    end)
-
-    refs.maxZoomInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.maxZoomInput, st.maxZoomValue)
-        if n and n >= 0 then
-            st.maxZoomValue = n
-        end
-        local pf = refs.maxZoomInput:GetAttribute("Prefix") or ""
-        refs.maxZoomInput.Text = pf .. tostring(st.maxZoomValue)
-    end)
-
-    api.buttonActions["setMinZoomBtn"] = function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.minZoomInput, st.minZoomValue)
-        if n and n >= 0 then
-            st.minZoomValue = n
-        end
-        local pf = refs.minZoomInput:GetAttribute("Prefix") or ""
-        refs.minZoomInput.Text = pf .. tostring(st.minZoomValue)
-        lp.CameraMinZoomDistance = st.minZoomValue
-    end
-    refs.setMinZoomBtn.Activated:Connect(api.buttonActions["setMinZoomBtn"])
-
-    refs.loopMinZoomBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.minZoomLoop = not st.minZoomLoop
-        updLoopMinZoomBtn()
-    end)
-
-    refs.minZoomInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.minZoomInput, st.minZoomValue)
-        if n and n >= 0 then
-            st.minZoomValue = n
-        end
-        local pf = refs.minZoomInput:GetAttribute("Prefix") or ""
-        refs.minZoomInput.Text = pf .. tostring(st.minZoomValue)
-    end)
-
-    refs.noMaxZoomBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleNoMaxZoom()
-    end)
-
-    refs.noMinZoomBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        toggleNoMinZoom()
-    end)
-
-    refs.noFogBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.noFogOn = not st.noFogOn
-        if st.noFogOn then
-            st.fogLoop = false
-            updLoopFogBtn()
-        end
-        updNoFogBtn()
-    end)
-
-    api.buttonActions["setFogBtn"] = function()
-        if destroyed then
-            return
-        end
-        parseFogColor()
-        parseFogStart()
-        parseFogEnd()
-        L.FogColor = st.fogColor
-        L.FogStart = st.fogStart
-        L.FogEnd = st.fogEnd
-    end
-    refs.setFogBtn.Activated:Connect(api.buttonActions["setFogBtn"])
-
-    refs.loopFogBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.fogLoop = not st.fogLoop
-        if st.fogLoop then
-            st.noFogOn = false
-            updNoFogBtn()
-        end
-        updLoopFogBtn()
-    end)
-
-    refs.fogColorInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        parseFogColor()
-    end)
-
-    refs.fogStartInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        parseFogStart()
-    end)
-
-    refs.fogEndInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        parseFogEnd()
-    end)
-
-    api.buttonActions["fbBtn"] = function()
-        if destroyed then
-            return
-        end
-        applyFullBright()
-    end
-    refs.fbBtn.Activated:Connect(api.buttonActions["fbBtn"])
-
-    refs.loopFbBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.fullBrightLoopOn = not st.fullBrightLoopOn
-        updLoopFbBtn()
-    end)
-
-    refs.flySpeedInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.flySpeedInput, st.flySpeed)
-        if n and n > 0 then
-            st.flySpeed = n
-        end
-        local pf = refs.flySpeedInput:GetAttribute("Prefix") or ""
-        refs.flySpeedInput.Text = pf .. tostring(st.flySpeed)
-    end)
-
-    refs.tpWalkSpeedInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        local n = readNumber(refs.tpWalkSpeedInput, st.tpSpeed)
-        if n and n > 0 then
-            st.tpSpeed = n
-        end
-        local pf = refs.tpWalkSpeedInput:GetAttribute("Prefix") or ""
-        refs.tpWalkSpeedInput.Text = pf .. tostring(st.tpSpeed)
-    end)
-
-    refs.smartFlyBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        if not isPC then
-            return
-        end
-        st.smartFlyOn = not st.smartFlyOn
-        updSmartFlyBtn()
-    end)
-
-    api.buttonActions["smartFlyTrigBtn"] = function()
-        if destroyed then
-            return
-        end
-        if not isPC then
-            return
-        end
-        st.smartFlyWaitingKey = true
-        local kName = (st.smartFlyKey and st.smartFlyKey.Name or (st.language == "jp" and "なし" or "None"))
-        refs.smartFlyTrigBtn.Text = st.language == "jp"
-            and ("トリガーキー [" .. kName .. "] ...")
-            or ("Trigger [" .. kName .. "] ...")
-    end
-    refs.smartFlyTrigBtn.Activated:Connect(api.buttonActions["smartFlyTrigBtn"])
-
-    refs.smartResetBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        if not isPC then
-            return
-        end
-        st.smartResetOn = not st.smartResetOn
-        updSmartResetBtn()
-    end)
-
-    api.buttonActions["smartResetTrigBtn"] = function()
-        if destroyed then
-            return
-        end
-        if not isPC then
-            return
-        end
-        st.smartResetWaitingKey = true
-        local kName = (st.smartResetKey and st.smartResetKey.Name or (st.language == "jp" and "なし" or "None"))
-        refs.smartResetTrigBtn.Text = st.language == "jp"
-            and ("トリガーキー [" .. kName .. "] ...")
-            or ("Trigger [" .. kName .. "] ...")
-    end
-    refs.smartResetTrigBtn.Activated:Connect(api.buttonActions["smartResetTrigBtn"])
-
-    api.buttonActions["resetCamBtn"] = function()
-        if destroyed then
-            return
-        end
-        applyResetCamera()
-    end
-    refs.resetCamBtn.Activated:Connect(api.buttonActions["resetCamBtn"])
-
-    refs.loopResetCamBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        st.resetCamLoopOn = not st.resetCamLoopOn
-        updLoopResetCamBtn()
-    end)
-
-    api.buttonActions["loadIYBtn"] = function()
-        if destroyed then
-            return
-        end
-        runUrl("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source")
-    end
-    refs.loadIYBtn.Activated:Connect(api.buttonActions["loadIYBtn"])
-
-    api.buttonActions["loadRSpyBtn"] = function()
-        if destroyed then
-            return
-        end
-        runUrl("https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua")
-    end
-    refs.loadRSpyBtn.Activated:Connect(api.buttonActions["loadRSpyBtn"])
-
-    api.buttonActions["loadDexBtn"] = function()
-        if destroyed then
-            return
-        end
-        runUrl("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua")
-    end
-    refs.loadDexBtn.Activated:Connect(api.buttonActions["loadDexBtn"])
-
-    api.buttonActions["loadShiftLockBtn"] = function()
-        if destroyed then
-            return
-        end
-        runUrl("https://rawscripts.net/raw/Universal-Script-Shiftlock-script-42373")
-    end
-    refs.loadShiftLockBtn.Activated:Connect(api.buttonActions["loadShiftLockBtn"])
-
-    refs.tpPosInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        parseTpPos()
-    end)
-
-    refs.tpToBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        parseTpPos()
-        local pos = st.tpPos
-        if not pos then
-            return
-        end
-        local c = getChar()
-        local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-        if hrp2 then
-            hrp2.CFrame = CFrame.new(pos)
-        end
-    end)
-
-    refs.setPosBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        local x, y, z = getPos()
-        local function r2(v)
-            return math.floor(v * 100 + 0.5) / 100
-        end
-        x, y, z = r2(x), r2(y), r2(z)
-        st.tpPos = Vector3.new(x, y, z)
-        local tb = refs.tpPosInput
-        local pf = tb:GetAttribute("Prefix") or ""
-        tb.Text = pf .. formatInit(x) .. " " .. formatInit(y) .. " " .. formatInit(z)
-    end)
-
-    refs.flingTargetInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        updateFlingTargetFromInput()
-    end)
-
-    refs.flingBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        startFling()
-    end)
-
-    refs.desyncPosInput.FocusLost:Connect(function()
-        if destroyed then
-            return
-        end
-        parseDesyncPosInput()
-    end)
-
-    refs.desyncBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        local prevActive = st.desyncOn or st.desyncPosOn
-        st.desyncOn = not st.desyncOn
-        if st.desyncOn then
-            st.desyncPosOn = false
-        end
-        local nowActive = st.desyncOn or st.desyncPosOn or st.desyncDirOn
-        if prevActive and not nowActive then
-            resetDesyncChar()
-        end
-        st.desyncSavedCF = nil
-        st.desyncRealCF = nil
-        st.desyncRealVel = nil
-        st.desyncRealRotVel = nil
-        if not st.desyncOn and not st.desyncPosOn and not st.desyncDirOn then
-            restoreDesyncMaterials()
-            if st.desyncDummy then
-                st.desyncDummy:Destroy()
-                st.desyncDummy = nil
-                st.desyncDummyRoot = nil
-                st.desyncDummyMotorMap = {}
-                st.desyncSourceChar = nil
-            end
-        end
-        updDesyncBtn()
-        updDesyncPosBtn()
-    end)
-
-    refs.desyncPosBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        local prevActive = st.desyncOn or st.desyncPosOn
-        st.desyncPosOn = not st.desyncPosOn
-        if st.desyncPosOn then
-            st.desyncOn = false
-            if not st.desyncPosTarget then
-                local c = getChar()
-                local hrp2 = c and c:FindFirstChild("HumanoidRootPart")
-                if hrp2 then
-                    local p2 = hrp2.Position
-                    st.desyncPosTarget = Vector3.new(p2.X, p2.Y, p2.Z)
-                    local tb = refs.desyncPosInput
-                    local pf = tb:GetAttribute("Prefix") or ""
-                    tb.Text = pf .. formatInit(p2.X) .. " " .. formatInit(p2.Y) .. " " .. formatInit(p2.Z)
-                end
-            end
-        end
-        local nowActive = st.desyncOn or st.desyncPosOn or st.desyncDirOn
-        if prevActive and not nowActive then
-            resetDesyncChar()
-        end
-        st.desyncSavedCF = nil
-        st.desyncRealCF = nil
-        st.desyncRealVel = nil
-        st.desyncRealRotVel = nil
-        if not st.desyncOn and not st.desyncPosOn and not st.desyncDirOn then
-            restoreDesyncMaterials()
-            if st.desyncDummy then
-                st.desyncDummy:Destroy()
-                st.desyncDummy = nil
-                st.desyncDummyRoot = nil
-                st.desyncDummyMotorMap = {}
-                st.desyncSourceChar = nil
-            end
-        end
-        updDesyncBtn()
-        updDesyncPosBtn()
-    end)
-
-    refs.desyncDirBtn.Activated:Connect(function()
-        if destroyed then
-            return
-        end
-        local prevActive = st.desyncOn or st.desyncPosOn or st.desyncDirOn
-        st.desyncDirOn = not st.desyncDirOn
-        updDesyncDirBtn()
-        updDesyncDirInputs()
-        local nowActive = st.desyncOn or st.desyncPosOn or st.desyncDirOn or st.desyncDirOn
-        if prevActive and not nowActive then
-            resetDesyncChar()
-        end
-        st.desyncSavedCF = nil
-        st.desyncRealCF = nil
-        st.desyncRealVel = nil
-        st.desyncRealRotVel = nil
-        if not nowActive then
-            restoreDesyncMaterials()
-            if st.desyncDummy then
-                pcall(function()
-                    st.desyncDummy:Destroy()
-                end)
-            end
-            st.desyncDummy = nil
-            st.desyncDummyRoot = nil
-            st.desyncDummyMotorMap = nil
-            st.desyncSourceChar = nil
-        end
-    end)
-
-    local function openLanguageDialog()
-        if refs.languageOverlay then
-            return
-        end
-        local overlay = Instance.new("Frame")
-        overlay.Name = "LanguageOverlay"
-        overlay.Size = UDim2.new(1, 0, 1, 0)
-        overlay.Position = UDim2.new(0, 0, 0, 0)
-        overlay.BackgroundColor3 = Color3.new(0, 0, 0)
-        overlay.BackgroundTransparency = 0.4
-        overlay.BorderSizePixel = 0
-        overlay.ZIndex = 1001
-        overlay.Parent = gui
-        refs.languageOverlay = overlay
-
-        local inner = Instance.new("Frame")
-        inner.Size = UDim2.new(0, 220, 0, 120)
-        inner.AnchorPoint = Vector2.new(0.5, 0.5)
-        inner.Position = UDim2.new(0.5, 0, 0.5, 0)
-        inner.BackgroundColor3 = refs.main.BackgroundColor3
-        inner.BackgroundTransparency = refs.main.BackgroundTransparency
-        inner.BorderSizePixel = 0
-        inner.ZIndex = 1002
-        inner.Parent = overlay
-
-        local ic = Instance.new("UICorner")
-        ic.CornerRadius = UDim.new(0, 10)
-        ic.Parent = inner
-
-        local title = Instance.new("TextLabel")
-        title.BackgroundTransparency = 1
-        title.BorderSizePixel = 0
-        title.Size = UDim2.new(1, 0, 0, 28)
-        title.Position = UDim2.new(0, 0, 0, 8)
-        title.Font = Enum.Font.Code
-        title.TextColor3 = Color3.new(1, 1, 1)
-        title.TextSize = 18
-        title.ZIndex = 1003
-        title.Text = st.language == "jp" and "言語を選択" or "Select Language"
-        title.Parent = inner
-
-        local close = Instance.new("TextButton")
-        close.Size = UDim2.new(0, 22, 0, 22)
-        close.Position = UDim2.new(1, -28, 0, 10)
-        close.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        close.BackgroundTransparency = 0.1
-        close.BorderSizePixel = 0
-        close.Font = Enum.Font.Code
-        close.TextSize = 18
-        close.TextColor3 = Color3.new(1, 1, 1)
-        close.AutoButtonColor = false
-        close.Text = "×"
-        close.ZIndex = 1004
-        close.Parent = inner
-        local cc = Instance.new("UICorner")
-        cc.CornerRadius = UDim.new(0, 6)
-        cc.Parent = close
-
-        close.Activated:Connect(function()
-            if refs.languageOverlay then
-                refs.languageOverlay:Destroy()
-                refs.languageOverlay = nil
-            end
-        end)
-
-        local btnFrame = Instance.new("Frame")
-        btnFrame.BackgroundTransparency = 1
-        btnFrame.BorderSizePixel = 0
-        btnFrame.Size = UDim2.new(1, -20, 0, 70)
-        btnFrame.Position = UDim2.new(0, 10, 0, 40)
-        btnFrame.ZIndex = 1003
-        btnFrame.Parent = inner
-
-        local list2 = Instance.new("UIListLayout")
-        list2.FillDirection = Enum.FillDirection.Vertical
-        list2.Padding = UDim.new(0, 8)
-        list2.SortOrder = Enum.SortOrder.LayoutOrder
-        list2.HorizontalAlignment = Enum.HorizontalAlignment.Center
-        list2.Parent = btnFrame
-
-        local function makeLangButton(text, code)
-            local b = Instance.new("TextButton")
-            b.Size = UDim2.new(1, 0, 0, 26)
-            b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            b.BackgroundTransparency = 0.1
-            b.BorderSizePixel = 0
-            b.Font = Enum.Font.Code
-            b.TextSize = 14
-            b.TextColor3 = Color3.new(1, 1, 1)
-            b.AutoButtonColor = false
-            b.Text = text
-            b.ZIndex = 1004
-            b.Parent = btnFrame
-            local c2 = Instance.new("UICorner")
-            c2.CornerRadius = UDim.new(0, 6)
-            c2.Parent = b
-            return b
-        end
-
-        local enBtn = makeLangButton("English", "en")
-        local jpBtn = makeLangButton("日本語", "jp")
-
-        local function refreshSel()
-            local current = st.language
-            if current == "en" then
-                enBtn.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
-                jpBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            else
-                jpBtn.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
-                enBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            end
-        end
-
-        refreshSel()
-
-        local function selectLang(code)
-            st.language = code
-            if type(g.LemeGUIV2_LangSave) == "function" then
-                g.LemeGUIV2_LangSave(code)
-            end
-            applyLanguage()
-            refreshSel()
-        end
-
-        enBtn.Activated:Connect(function()
-            selectLang("en")
-        end)
-
-        jpBtn.Activated:Connect(function()
-            selectLang("jp")
-        end)
-    end
-
-    local function openDesyncDirectionDialog()
-        if refs.desyncDirOverlay then
-            return
-        end
-        local overlay = Instance.new("Frame")
-        overlay.Name = "DesyncDirectionOverlay"
-        overlay.Size = UDim2.new(1, 0, 1, 0)
-        overlay.Position = UDim2.new(0, 0, 0, 0)
-        overlay.BackgroundColor3 = Color3.new(0, 0, 0)
-        overlay.BackgroundTransparency = 0.4
-        overlay.BorderSizePixel = 0
-        overlay.ZIndex = 1001
-        overlay.Parent = gui
-        refs.desyncDirOverlay = overlay
-
-        local inner = Instance.new("Frame")
-        inner.Size = UDim2.new(0, 240, 0, 160)
-        inner.AnchorPoint = Vector2.new(0.5, 0.5)
-        inner.Position = UDim2.new(0.5, 0, 0.5, 0)
-        inner.BackgroundColor3 = refs.main.BackgroundColor3
-        inner.BackgroundTransparency = refs.main.BackgroundTransparency
-        inner.BorderSizePixel = 0
-        inner.ZIndex = 1002
-        inner.Parent = overlay
-
-        local ic = Instance.new("UICorner")
-        ic.CornerRadius = UDim.new(0, 10)
-        ic.Parent = inner
-
-        local title = Instance.new("TextLabel")
-        title.BackgroundTransparency = 1
-        title.BorderSizePixel = 0
-        title.Size = UDim2.new(1, -32, 0, 28)
-        title.Position = UDim2.new(0, 10, 0, 8)
-        title.Font = Enum.Font.Code
-        title.TextColor3 = Color3.new(1, 1, 1)
-        title.TextSize = 18
-        title.ZIndex = 1003
-        title.Text = st.language == "jp" and "向きを選択" or "Select Direction"
-        title.TextXAlignment = Enum.TextXAlignment.Left
-        title.Parent = inner
-
-        local close = Instance.new("TextButton")
-        close.Size = UDim2.new(0, 22, 0, 22)
-        close.Position = UDim2.new(1, -28, 0, 10)
-        close.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        close.BackgroundTransparency = 0.1
-        close.BorderSizePixel = 0
-        close.Font = Enum.Font.Code
-        close.TextSize = 18
-        close.TextColor3 = Color3.new(1, 1, 1)
-        close.AutoButtonColor = false
-        close.Text = "×"
-        close.ZIndex = 1004
-        close.Parent = inner
-        local cc = Instance.new("UICorner")
-        cc.CornerRadius = UDim.new(0, 6)
-        cc.Parent = close
-
-        close.Activated:Connect(function()
-            if refs.desyncDirOverlay then
-                refs.desyncDirOverlay:Destroy()
-                refs.desyncDirOverlay = nil
-            end
-        end)
-
-        local btnFrame = Instance.new("Frame")
-        btnFrame.BackgroundTransparency = 1
-        btnFrame.BorderSizePixel = 0
-        btnFrame.Size = UDim2.new(1, -20, 0, 100)
-        btnFrame.Position = UDim2.new(0, 10, 0, 46)
-        btnFrame.ZIndex = 1003
-        btnFrame.Parent = inner
-
-        local list2 = Instance.new("UIListLayout")
-        list2.FillDirection = Enum.FillDirection.Vertical
-        list2.Padding = UDim.new(0, 8)
-        list2.SortOrder = Enum.SortOrder.LayoutOrder
-        list2.HorizontalAlignment = Enum.HorizontalAlignment.Center
-        list2.Parent = btnFrame
-
-        local function makeOpt()
-            local b = Instance.new("TextButton")
-            b.Size = UDim2.new(1, 0, 0, 26)
-            b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            b.BackgroundTransparency = 0.1
-            b.BorderSizePixel = 0
-            b.Font = Enum.Font.Code
-            b.TextSize = 14
-            b.TextColor3 = Color3.new(1, 1, 1)
-            b.AutoButtonColor = false
-            b.ZIndex = 1004
-            b.Parent = btnFrame
-            local c2 = Instance.new("UICorner")
-            c2.CornerRadius = UDim.new(0, 6)
-            c2.Parent = b
-            return b
-        end
-
-        local rollBtn = makeOpt()
-        local pitchBtn = makeOpt()
-        local yawBtn = makeOpt()
-
-        local function refresh()
-            rollBtn.Text = st.language == "jp" and "ロール" or "Roll"
-            pitchBtn.Text = st.language == "jp" and "ピッチ" or "Pitch"
-            yawBtn.Text = st.language == "jp" and "ヨー" or "Yaw"
-            rollBtn.BackgroundColor3 = st.desyncDirRollOn and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
-            pitchBtn.BackgroundColor3 = st.desyncDirPitchOn and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
-            yawBtn.BackgroundColor3 = st.desyncDirYawOn and Color3.fromRGB(80, 160, 255) or Color3.fromRGB(40, 40, 40)
-        end
-
-        refresh()
-
-        rollBtn.Activated:Connect(function()
-            st.desyncDirRollOn = not st.desyncDirRollOn
-            updDesyncDirInputs()
-            refresh()
-        end)
-
-        pitchBtn.Activated:Connect(function()
-            st.desyncDirPitchOn = not st.desyncDirPitchOn
-            updDesyncDirInputs()
-            refresh()
-        end)
-
-        yawBtn.Activated:Connect(function()
-            st.desyncDirYawOn = not st.desyncDirYawOn
-            updDesyncDirInputs()
-            refresh()
-        end)
-    end
-
-    api.buttonActions["languageBtn"] = function()
-        if destroyed then
-            return
-        end
-        openLanguageDialog()
-    end
-    refs.languageBtn.Activated:Connect(api.buttonActions["languageBtn"])
-
-    api.buttonActions["desyncDirDirectionBtn"] = function()
-        if destroyed then
-            return
-        end
-        openDesyncDirectionDialog()
-    end
-    refs.desyncDirDirectionBtn.Activated:Connect(api.buttonActions["desyncDirDirectionBtn"])
-
-    refs.toggle.InputBegan:Connect(function(input)
-        if destroyed then
-            return
-        end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            mouseDown = true
-            dragCandidate = true
-            dragging = false
-            dragMoved = false
-            dragStartX = input.Position.X
-            dragBtnStartX = btnX
-        end
-    end)
-
-    U.InputChanged:Connect(function(input)
-        if destroyed then
-            return
-        end
-        if not mouseDown then
-            return
-        end
-        if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then
-            return
-        end
-        local cam2 = ws.CurrentCamera
-        if not cam2 then
-            return
-        end
-        local vs = cam2.ViewportSize
-        if vs.X <= 0 then
-            return
-        end
-        local dx = (input.Position.X - dragStartX) / vs.X
-        local threshold = 0.01
-        if dragCandidate and math.abs(dx) > threshold then
-            dragCandidate = false
-            dragging = true
-            dragMoved = true
-        end
-        if dragging then
-            targetBtnX = math.clamp(dragBtnStartX + dx, 0, 1)
-        end
-    end)
-
-    U.InputEnded:Connect(function(input)
-        if destroyed then
-            return
-        end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            mouseDown = false
-            dragging = false
-            dragCandidate = false
-        end
-        if U:GetFocusedTextBox() then
-            return
-        end
-        local kc = input.KeyCode
-        if kc == Enum.KeyCode.W then
-            st.moveKeys.W = false
-        end
-        if kc == Enum.KeyCode.A then
-            st.moveKeys.A = false
-        end
-        if kc == Enum.KeyCode.S then
-            st.moveKeys.S = false
-        end
-        if kc == Enum.KeyCode.D then
-            st.moveKeys.D = false
-        end
-        if kc == Enum.KeyCode.Q then
-            st.moveKeys.Q = false
-        end
-        if kc == Enum.KeyCode.E then
-            st.moveKeys.E = false
-        end
-    end)
-
-    U.InputBegan:Connect(function(input, processed)
-        if destroyed then
-            return
-        end
-
-        if input.UserInputType == Enum.UserInputType.Keyboard and isPC then
-            if st.smartFlyWaitingKey then
-                st.smartFlyWaitingKey = false
-                if input.KeyCode and input.KeyCode ~= Enum.KeyCode.Unknown then
-                    st.smartFlyKey = input.KeyCode
-                end
-                refs.smartFlyTrigBtn.Text = st.language == "jp"
-                    and ("トリガーキー [" .. (st.smartFlyKey and st.smartFlyKey.Name or (st.language == "jp" and "なし" or "None")) .. "]")
-                    or ("Trigger [" .. (st.smartFlyKey and st.smartFlyKey.Name or (st.language == "jp" and "なし" or "None")) .. "]")
-                return
-            end
-            if st.smartResetWaitingKey then
-                st.smartResetWaitingKey = false
-                if input.KeyCode and input.KeyCode ~= Enum.KeyCode.Unknown then
-                    st.smartResetKey = input.KeyCode
-                end
-                refs.smartResetTrigBtn.Text = st.language == "jp"
-                    and ("トリガーキー [" .. (st.smartResetKey and st.smartResetKey.Name or (st.language == "jp" and "なし" or "None")) .. "]")
-                    or ("Trigger [" .. (st.smartResetKey and st.smartResetKey.Name or (st.language == "jp" and "なし" or "None")) .. "]")
-                return
-            end
-        end
-
-        local kc = input.KeyCode
-        local isMove = (kc == Enum.KeyCode.W or kc == Enum.KeyCode.A or kc == Enum.KeyCode.S or kc == Enum.KeyCode.D or kc == Enum.KeyCode.Q or kc == Enum.KeyCode.E)
-        if (not isMove) and processed then
-            return
-        end
-        if U:GetFocusedTextBox() then
-            return
-        end
-
-        if kc == Enum.KeyCode.W then
-            st.moveKeys.W = true
-        end
-        if kc == Enum.KeyCode.A then
-            st.moveKeys.A = true
-        end
-        if kc == Enum.KeyCode.S then
-            st.moveKeys.S = true
-        end
-        if kc == Enum.KeyCode.D then
-            st.moveKeys.D = true
-        end
-        if kc == Enum.KeyCode.Q then
-            st.moveKeys.Q = true
-        end
-        if kc == Enum.KeyCode.E then
-            st.moveKeys.E = true
-        end
-
-        if isPC and input.UserInputType == Enum.UserInputType.Keyboard then
-            if st.smartFlyOn and kc == st.smartFlyKey then
-                setFlyMode("fly")
-            end
-            if st.smartResetOn and kc == st.smartResetKey then
-                killSelf()
-            end
-        end
-    end)
-
-    updNoclipBtn()
-    updTpBtn()
-    updAnchorBtn()
-    updAntiVoidBtn()
-    updAntiAfkBtn()
-    updAntiFlingBtn()
-    updTouchFlingBtn()
-    updFlyJumpBtn()
-    updFlyBtns()
-    updEspBtn()
-    updMiniEspBtn()
-    updStatusBtn()
-    updLoopFovBtn()
-    updLoopSpeedBtn()
-    updLoopJumpBtn()
-    updLoopMaxZoomBtn()
-    updLoopMinZoomBtn()
-    updNoFogBtn()
-    updLoopFogBtn()
-    updLoopFbBtn()
-    updLoopGravBtn()
-    updSmartFlyBtn()
-    updSmartResetBtn()
-    updChatBtn()
-    updNoMaxZoomBtn()
-    updNoMinZoomBtn()
-    updLoopKillBtn()
-    updDesyncBtn()
-    updDesyncPosBtn()
-    updLoopResetCamBtn()
-    updFlingTargetDisplay()
-    updLanguageBtn()
-    applyLanguage()
-
-    function C.D()
-        if destroyed then
-            return
-        end
-        destroyed = true
-        touchStopRequested = true
-        if hbConn and hbConn.Connected then
-            hbConn:Disconnect()
-        end
-        R:UnbindFromRenderStep("Leme_DesyncRevert")
-        for i = #conns, 1, -1 do
-            local c = conns[i]
-            conns[i] = nil
-            if c and c.Connected then
-                c:Disconnect()
-            end
-        end
-        clearNameEsp()
-        clearMiniEsp()
-        if st.statusGui then
-            st.statusGui:Destroy()
-            st.statusGui = nil
-            st.statusLabel = nil
-        end
-        removeHoverAlign()
-        restoreDesyncMaterials()
-        if st.desyncDummy then
-            st.desyncDummy:Destroy()
-            st.desyncDummy = nil
-            st.desyncDummyRoot = nil
-            st.desyncDummyMotorMap = {}
-            st.desyncSourceChar = nil
-        end
-        pcall(function()
-            gui:Destroy()
-        end)
-        if g.LemeGUIV2 == C then
-            g.LemeGUIV2 = nil
-        end
-    end
-
-    api.buttonActions["unloadBtn"] = function()
-        if destroyed then
-            return
-        end
-        C.D()
-    end
-    refs.unloadBtn.Activated:Connect(api.buttonActions["unloadBtn"])
-
-    api.buttonActions["reloadBtn"] = function()
-        if destroyed then
-            return
-        end
-        C.D()
-        spawn(Start)
-    end
-    refs.reloadBtn.Activated:Connect(api.buttonActions["reloadBtn"])
-
-    do
-        local cfgSrc = [==[
-return function(getgenv, refs, st, allButtons, gui, ws, lp, api)
-    local function ensurePressed()
-        local p = getgenv().LemeGUIV2_Pressed
-        if type(p) ~= "table" then
-            p = {}
-            getgenv().LemeGUIV2_Pressed = p
-        end
-        return p
-    end
-
-    local exclude = {
-        flingBtn = true,
-        rejoinBtn = true,
-        tpToBtn = true,
-        setPosBtn = true
-    }
-
-    local function isOn(btn)
-        local t = btn and btn.Text or ""
-        if string.find(t, "%[ON%]") then
-            return true
-        end
-        if string.find(t, "%[オン%]") then
-            return true
-        end
-        return false
-    end
-
-    local function setToggleText(btn, on)
-        if not btn then
-            return
-        end
-        local baseEn = btn:GetAttribute("TextEn") or btn.Text
-        local baseJp = btn:GetAttribute("TextJp") or baseEn
-        local base = (st and st.language == "jp") and baseJp or baseEn
-        local onStr, offStr
-        if st and st.language == "jp" then
-            onStr, offStr = "オン", "オフ"
-        else
-            onStr, offStr = "ON", "OFF"
-        end
-        btn.Text = string.format("%s [%s]", base, on and onStr or offStr)
-    end
-
-    local function esc(v)
-        v = tostring(v or "")
-        v = string.gsub(v, "\\\\", "\\\\\\\\")
-        v = string.gsub(v, "\n", "\\\\n")
-        v = string.gsub(v, "=", "\\\\=")
-        return v
-    end
-
-    local function unesc(v)
-        v = tostring(v or "")
-        v = string.gsub(v, "\\\\n", "\n")
-        v = string.gsub(v, "\\\\=", "=")
-        v = string.gsub(v, "\\\\\\\\", "\\\\")
-        return v
-    end
-
-    local function groupKey(inst)
-        local cur = inst
-        while cur do
-            local nm = cur.Name
-            if type(nm) == "string" and string.sub(nm, -5) == "Group" then
-                return string.lower(string.sub(nm, 1, #nm - 5))
-            end
-            cur = cur.Parent
-        end
-        return "ui"
-    end
-
-    local function findRef(key)
-        local v = refs and refs[key]
-        if v then
-            return v
-        end
-        v = refs and refs[key .. "Btn"]
-        if v then
-            return v
-        end
-        v = refs and refs[key .. "Input"]
-        if v then
-            return v
-        end
-        return nil
-    end
-
-    local function stripAllPrefixes(tb, txt)
-        txt = tostring(txt or "")
-        local p = tb:GetAttribute("Prefix") or ""
-        local en = tb:GetAttribute("PrefixEn") or ""
-        local jp = tb:GetAttribute("PrefixJp") or ""
-        local function stripOne(pref)
-            if type(pref) == "string" and pref ~= "" then
-                if string.sub(txt, 1, #pref) == pref then
-                    txt = string.sub(txt, #pref + 1)
-                end
-            end
-        end
-        stripOne(p)
-        stripOne(en)
-        stripOne(jp)
-        txt = string.gsub(txt, "^%s+", "")
-        txt = string.gsub(txt, "%s+$", "")
-        return txt
-    end
-
-    local inputToSt = {
-        bodyTransInput = "bodyTransValue",
-        desyncDirRollInput = "desyncDirRollDeg",
-        desyncDirPitchInput = "desyncDirPitchDeg",
-        desyncDirYawInput = "desyncDirYawDeg",
-        fovInput = "fovValue",
-        speedInput = "speedValue",
-        jumpInput = "jumpValue",
-        gravInput = "gravValue",
-        maxZoomInput = "maxZoomValue",
-        minZoomInput = "minZoomValue",
-        flySpeedInput = "flySpeed",
-        tpWalkSpeedInput = "tpSpeed"
-    }
-
-    local function buildConfigText()
-        local out = {}
-        table.insert(out, "getgenv().LemeGUIV2_Config = [[")
-        local pressed = ensurePressed()
-
-        for _, b in ipairs(allButtons or {}) do
-            local key = b.Name
-            if not exclude[key] then
-                local g = groupKey(b)
-                if b:GetAttribute("IsToggle") then
-                    table.insert(out, g .. ",togglebutton," .. key .. "=" .. (isOn(b) and "true" or "false"))
-                else
-                end
-            end
-        end
-
-        for k, v in pairs(refs or {}) do
-            if typeof(v) == "Instance" and v:IsA("TextBox") then
-                local g2 = groupKey(v)
-                local body = stripAllPrefixes(v, v.Text)
-
-                local hasPf = (v:GetAttribute("Prefix") or v:GetAttribute("PrefixEn") or v:GetAttribute("PrefixJp")) and true or false
-                if hasPf then
-                    local nums = {}
-                    for n in string.gmatch(body, "[-]?%d+%.?%d*") do
-                        table.insert(nums, n)
-                    end
-                    if #nums > 0 then
-                        body = table.concat(nums, " ")
-                    end
-                end
-
-                if st and inputToSt and inputToSt[k] and type(st[inputToSt[k]]) == "number" then
-                    body = tostring(st[inputToSt[k]])
-                end
-
-                table.insert(out, g2 .. ",input," .. k .. "=" .. esc(body))
-            end
-        end
-
-        if st and st.language then
-            table.insert(out, "state,value,language=" .. esc(st.language))
-        end
-
-        if st and "normal" then
-        end
-
-        if st and st.smartFlyKey then
-            table.insert(out, "state,keycode,smartFlyKey=" .. st.smartFlyKey.Name)
-        end
-        if st and st.smartResetKey then
-            table.insert(out, "state,keycode,smartResetKey=" .. st.smartResetKey.Name)
-        end
-
-        if st then
-            local keys = { "desyncDirRollOn", "desyncDirPitchOn", "desyncDirYawOn" }
-            for _, kk in ipairs(keys) do
-                if type(st[kk]) == "boolean" then
-                    table.insert(out, "state,toggle," .. kk .. "=" .. (st[kk] and "true" or "false"))
-                end
-            end
-        end
-
-        table.insert(out, "]]")
-        table.insert(out, "if getgenv().LemeGUIV2_ApplyConfig then")
-        table.insert(out, "    getgenv().LemeGUIV2_ApplyConfig(getgenv().LemeGUIV2_Config)")
-        table.insert(out, "end")
-        return table.concat(out, "\n")
-    end
-
-    local stKeyByBtn = {
-        loopFovBtn = "fovLoop",
-        loopSpeedBtn = "speedLoop",
-        loopJumpBtn = "jumpLoop",
-        loopGravBtn = "gravLoop",
-        loopMaxZoomBtn = "maxZoomLoop",
-        loopMinZoomBtn = "minZoomLoop",
-        loopFogBtn = "fogLoop",
-        loopFbBtn = "fullBrightLoopOn",
-        loopResetCamBtn = "resetCamLoopOn"
-    }
-
-    local function applySimpleToggle(btnKey, want)
-        local btn = findRef(btnKey)
-        if not btn then
-            return
-        end
-        local stKey = stKeyByBtn[btnKey]
-        if not stKey then
-            stKey = string.gsub(btnKey, "Btn$", "") .. "On"
-        end
-        if st and type(st[stKey]) == "boolean" then
-            st[stKey] = want
-        elseif st and stKey == "resetCamLoopOn" then
-            st.resetCamLoopOn = want
-        end
-        setToggleText(btn, want)
-    end
-
-    local function applyFlyMode(wantFly, wantHover, wantVel)
-        local mode = "none"
-        if wantFly then
-            mode = "fly"
-        elseif wantHover then
-            mode = "hover"
-        elseif wantVel then
-            mode = "vel"
-        end
-        if api and type(api.setFlyMode) == "function" then
-            if st and st.flyMode == mode then
-                return
-            end
-            api.setFlyMode(mode)
-        else
-            if st then
-                st.flyMode = mode
-            end
-            local b1 = findRef("flyBtn")
-            local b2 = findRef("hoverBtn")
-            local b3 = findRef("velBtn")
-            if b1 then setToggleText(b1, mode == "fly") end
-            if b2 then setToggleText(b2, mode == "hover") end
-            if b3 then setToggleText(b3, mode == "vel") end
-        end
-    end
-
-    local function applyDesyncStates(wantDesync, wantPos, wantDir)
-        wantDesync = (wantDesync == true)
-        wantPos = (wantPos == true)
-        wantDir = (wantDir == true)
-
-        if wantDesync and wantPos then
-            wantPos = false
-        end
-
-        local prevActive = (st.desyncOn or st.desyncPosOn or st.desyncDirOn) and true or false
-
-        st.desyncOn = wantDesync
-        st.desyncPosOn = wantPos
-        st.desyncDirOn = wantDir
-
-        if st.desyncPosOn then
-            if not st.desyncPosTarget then
-                local c = lp and lp.Character
-                local hrp = c and c:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local p2 = hrp.Position
-                    st.desyncPosTarget = Vector3.new(p2.X, p2.Y, p2.Z)
-                end
-            end
-        end
-
-        local nowActive = (st.desyncOn or st.desyncPosOn or st.desyncDirOn) and true or false
-        if prevActive and (not nowActive) then
-            if api and type(api.resetDesyncChar) == "function" then
-                api.resetDesyncChar()
-            end
-        end
-
-        st.desyncSavedCF = nil
-        st.desyncRealCF = nil
-        st.desyncRealVel = nil
-        st.desyncRealRotVel = nil
-
-        if not nowActive then
-            if api and type(api.restoreDesyncMaterials) == "function" then
-                api.restoreDesyncMaterials()
-            end
-            if st.desyncDummy then
-                pcall(function()
-                    st.desyncDummy:Destroy()
-                end)
-            end
-            st.desyncDummy = nil
-            st.desyncDummyRoot = nil
-            st.desyncDummyMotorMap = nil
-            st.desyncSourceChar = nil
-        end
-
-        local b1 = findRef("desyncBtn")
-        local b2 = findRef("desyncPosBtn")
-        local b3 = findRef("desyncDirBtn")
-        if b1 then setToggleText(b1, st.desyncOn == true) end
-        if b2 then setToggleText(b2, st.desyncPosOn == true) end
-        if b3 then setToggleText(b3, st.desyncDirOn == true) end
-
-        if api and type(api.updDesyncDirInputs) == "function" then
-            api.updDesyncDirInputs()
-        end
-    end
-
-    local function applyConfigText(cfg)
-        cfg = tostring(cfg or "")
-        local pressed = ensurePressed()
-
-        local wantToggles = {}
-        local wantStateToggles = {}
-        local wantLanguage = nil
-        local wantKeys = {}
-
-        for line in string.gmatch(cfg, "([^\n]+)") do
-            local _, typ, rest = string.match(line, "^([^,]+),([^,]+),(.+)$")
-            if typ and rest then
-                local key, val = string.match(rest, "^([^=]+)=(.*)$")
-                if key and val then
-                    if typ == "input" then
-                        local tb = findRef(key)
-                        if tb and typeof(tb) == "Instance" and tb:IsA("TextBox") then
-                            local body = unesc(val)
-                            local pf = tb:GetAttribute("Prefix") or ""
-                            tb.Text = tostring(pf) .. tostring(body)
-                            if st and inputToSt[key] then
-                                local n = tonumber(stripAllPrefixes(tb, tb.Text))
-                                if n then
-                                    st[inputToSt[key]] = n
-                                end
-                            end
-                        end
-                    elseif typ == "togglebutton" then
-                        wantToggles[key] = (val == "true")
-                    elseif typ == "value" then
-                        if key == "language" then
-                            wantLanguage = unesc(val)end
-                    elseif typ == "toggle" then
-                        wantStateToggles[key] = (val == "true")
-                    elseif typ == "keycode" then
-                        wantKeys[key] = val
-                    end
-                end
-            end
-        end
-
-        if st then
-            for k, v in pairs(wantStateToggles) do
-                if type(st[k]) == "boolean" then
-                    st[k] = v
-                end
-            end
-        end
-
-        if st and wantLanguage then
-            st.language = wantLanguage
-            if api and type(api.applyLanguage) == "function" then
-                api.applyLanguage()
-            end
-        end
-        if st and wantKeys then
-            local function setKey(name, kcName)
-                if not kcName then
-                    return
-                end
-                pcall(function()
-                    local kc = Enum.KeyCode[kcName]
-                    if kc then
-                        st[name] = kc
-                    end
-                end)
-            end
-            setKey("smartFlyKey", wantKeys.smartFlyKey)
-            setKey("smartResetKey", wantKeys.smartResetKey)
-        end
-
-        local wantFly = wantToggles.flyBtn
-        local wantHover = wantToggles.hoverBtn
-        local wantVel = wantToggles.velBtn
-        applyFlyMode(wantFly, wantHover, wantVel)
-        wantToggles.flyBtn = nil
-        wantToggles.hoverBtn = nil
-        wantToggles.velBtn = nil
-
-        local wantDesync = wantToggles.desyncBtn
-        local wantPos = wantToggles.desyncPosBtn
-        local wantDir = wantToggles.desyncDirBtn
-        if wantDesync ~= nil or wantPos ~= nil or wantDir ~= nil then
-            applyDesyncStates(wantDesync, wantPos, wantDir)
-        end
-        wantToggles.desyncBtn = nil
-        wantToggles.desyncPosBtn = nil
-        wantToggles.desyncDirBtn = nil
-
-        local special = {
-            noclipBtn = "toggleNoclip",
-            tpWalkBtn = "toggleTpWalk",
-            anchorBtn = "toggleAnchor",
-            antiVoidBtn = "toggleAntiVoid",
-            antiFlingBtn = "toggleAntiFling",
-            touchFlingBtn = "toggleTouchFling",
-            flyJumpBtn = "toggleFlyJump",
-            espBtn = "toggleESP",
-            miniEspBtn = "toggleMiniESP",
-            statusBtn = "toggleStatus",
-            noMaxZoomBtn = "toggleNoMaxZoom",
-            noMinZoomBtn = "toggleNoMinZoom"
-        }
-
-        for key, want in pairs(wantToggles) do
-            if not exclude[key] then
-                local fnName = special[key]
-                if fnName and api and type(api[fnName]) == "function" then
-                    local stKey = string.gsub(key, "Btn$", "") .. "On"
-                    local cur = false
-                    if st and type(st[stKey]) == "boolean" then
-                        cur = st[stKey]
-                    end
-                    if cur ~= want then
-                        api[fnName]()
-                    end
-                    local btn = findRef(key)
-                    if btn then
-                        setToggleText(btn, want)
-                    end
-                else
-                    applySimpleToggle(key, want)
-                end
-            end
-        end
-            end
-        end
-    end
-
-    getgenv().LemeGUIV2_ApplyConfig = function(cfg)
-        applyConfigText(cfg)
-    end
-
-    getgenv().LemeGUIV2_BuildConfig = function()
-        return buildConfigText()
-    end
-
-            local txt = buildConfigText()
-            local ok, did = pcall(function()
-                if typeof(setclipboard) == "function" then
-                    setclipboard(txt)
-                    return true
-                end
-            end)
-            if ok and did then
-                return
-            end
-
-            local overlay = Instance.new("Frame")
-            overlay.Name = "CopyConfigOverlay"
-            overlay.Size = UDim2.new(1, 0, 1, 0)
-            overlay.Position = UDim2.new(0, 0, 0, 0)
-            overlay.BackgroundColor3 = Color3.new(0, 0, 0)
-            overlay.BackgroundTransparency = 0.4
-            overlay.BorderSizePixel = 0
-            overlay.ZIndex = 1200
-            overlay.Parent = gui
-
-            local inner = Instance.new("Frame")
-            inner.Size = UDim2.new(0, 420, 0, 260)
-            inner.AnchorPoint = Vector2.new(0.5, 0.5)
-            inner.Position = UDim2.new(0.5, 0, 0.5, 0)
-            inner.BackgroundColor3 = refs.main.BackgroundColor3
-            inner.BackgroundTransparency = refs.main.BackgroundTransparency
-            inner.BorderSizePixel = 0
-            inner.ZIndex = 1201
-            inner.Parent = overlay
-
-            local ic = Instance.new("UICorner")
-            ic.CornerRadius = UDim.new(0, 10)
-            ic.Parent = inner
-
-            local close = Instance.new("TextButton")
-            close.Size = UDim2.new(0, 22, 0, 22)
-            close.Position = UDim2.new(1, -28, 0, 10)
-            close.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            close.BackgroundTransparency = 0.1
-            close.BorderSizePixel = 0
-            close.Font = Enum.Font.Code
-            close.TextSize = 18
-            close.TextColor3 = Color3.new(1, 1, 1)
-            close.AutoButtonColor = false
-            close.Text = "×"
-            close.ZIndex = 1202
-            close.Parent = inner
-            local cc = Instance.new("UICorner")
-            cc.CornerRadius = UDim.new(0, 6)
-            cc.Parent = close
-
-            close.Activated:Connect(function()
-                overlay:Destroy()
-            end)
-
-            local tb = Instance.new("TextBox")
-            tb.Size = UDim2.new(1, -20, 1, -20)
-            tb.Position = UDim2.new(0, 10, 0, 10)
-            tb.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-            tb.BackgroundTransparency = 0.1
-            tb.BorderSizePixel = 0
-            tb.Font = Enum.Font.Code
-            tb.TextColor3 = Color3.new(1, 1, 1)
-            tb.TextSize = 14
-            tb.TextXAlignment = Enum.TextXAlignment.Left
-            tb.TextYAlignment = Enum.TextYAlignment.Top
-            tb.ClearTextOnFocus = false
-            tb.MultiLine = true
-            tb.TextWrapped = false
-            tb.Text = txt
-            tb.ZIndex = 1202
-            tb.Parent = inner
-        end
-    end
-
-    if getgenv().LemeGUIV2_Config then
-        applyConfigText(getgenv().LemeGUIV2_Config)
-    end
-end
-]==]
-        
-        api = api or {}
-        api.buttonActions = api.buttonActions or {}
-        api.setFlyMode = setFlyMode
-        api.applyLanguage = applyLanguage
-        api.updDesyncDirInputs = updDesyncDirInputs
-        api.resetDesyncChar = resetDesyncChar
-        api.restoreDesyncMaterials = restoreDesyncMaterials
-        api.toggleNoclip = toggleNoclip
-        api.toggleTpWalk = toggleTpWalk
-        api.toggleAnchor = toggleAnchor
-        api.toggleAntiVoid = toggleAntiVoid
-        api.toggleAntiFling = toggleAntiFling
-        api.toggleTouchFling = toggleTouchFling
-        api.toggleFlyJump = toggleFlyJump
-        api.toggleESP = toggleESP
-        api.toggleMiniESP = toggleMiniESP
-        api.toggleStatus = toggleStatus
-        api.toggleNoMaxZoom = toggleNoMaxZoom
-        api.toggleNoMinZoom = toggleNoMinZoom
-        api.buttonActions = {}
-        api.buttonActions.smartFlyTrigBtn = function()
-            if isPC and st and st.smartFlyKey then
-                st.smartFlyOn = false
-                if st.smartFlyTrig then
-                    st.smartFlyTrig()
-                end
-            end
-        end
-        api.buttonActions.smartResetTrigBtn = function()
-            if isPC and st and st.smartResetKey then
-                st.smartResetOn = false
-                if st.smartResetTrig then
-                    st.smartResetTrig()
-                end
-            end
-        end
-        api.buttonActions.setFovBtn = function()
-            if ws and ws.CurrentCamera and st and type(st.fovValue) == "number" then
-                ws.CurrentCamera.FieldOfView = st.fovValue
-            end
-        end
-        api.buttonActions.setSpeedBtn = function()
-            local c = getChar()
-            local hum = c and c:FindFirstChildOfClass("Humanoid")
-            if hum and st and type(st.speedValue) == "number" then
-                hum.WalkSpeed = st.speedValue
-            end
-        end
-        api.buttonActions.setJumpBtn = function()
-            local c = getChar()
-            local hum = c and c:FindFirstChildOfClass("Humanoid")
-            if hum and st and type(st.jumpValue) == "number" then
-                if hum.UseJumpPower then
-                    hum.JumpPower = st.jumpValue
-                else
-                    hum.JumpHeight = st.jumpValue
-                end
-            end
-        end
-        api.buttonActions.setGravBtn = function()
-            if ws and st and type(st.gravValue) == "number" then
-                ws.Gravity = st.gravValue
-            end
-        end
-        api.buttonActions.setMaxZoomBtn = function()
-            if lp and st and type(st.maxZoomValue) == "number" then
-                lp.CameraMaxZoomDistance = st.maxZoomValue
-            end
-        end
-        api.buttonActions.setMinZoomBtn = function()
-            if lp and st and type(st.minZoomValue) == "number" then
-                lp.CameraMinZoomDistance = st.minZoomValue
-            end
-        end
-pcall(function()
-            if typeof(loadstring) == "function" then
-                local f = loadstring(cfgSrc)()
-                if type(f) == "function" then
-                    f(getgenv, refs, st, allButtons, gui, ws, lp, api)
-                end
-            end
-        end)
-    end
-
-    if refs.main then
-        refs.main.Visible = true
-    end
-    if refs.toggle then
-        refs.toggle.Visible = true
-    end
-    if refs.loadingBlock then
-        pcall(function()
-            refs.loadingBlock:Destroy()
-        end)
-        refs.loadingBlock = nil
-        refs.loadingLabel = nil
-    end
-
-end
-
-Start()
+
+--[[
+このコードを読もうとしたな。
+コードを読むのはかなり手間がかかるだろう。
+しかし、その手間とこのコードの価値は全く釣り合わない。
+なぜかって？ゴミコードだからだよお！
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+return(function(...)local B={"\068\054\080\061";"\101\085\055\071\101\085\050\111\100\085\103\053\106\101\088\109","\101\073\050\112\057\083\100\067\081\071\108\077","\109\083\082\090\051\079\061\061";"\085\120\072\113\056\067\082\054\115\073\050\079\100\073\049\084\085\069\105\061","\098\070\100\083\051\048\061\061","\049\073\082\053\049\069\047\072\068\097\106\061";"\051\090\071\111\098\108\061\061","\106\097\052\114\068\070\098\071","\068\054\103\061","\051\067\082\113\051\067\066\111";"\101\052\047\118\052\069\075\077\106\101\066\119\106\103\082\103";"\081\067\100\079\085\066\103\088\100\071\066\067\101\052\057\056\108\048\061\061","\057\083\100\056\052\120\082\077\052\067\050\071\098\115\071\054","\078\115\066\119\101\097\114\099\101\097\082\047\078\115\072\116\052\109\103\061","\098\097\088\102\068\070\080\061";"\098\097\087\053\098\071\049\116\085\111\103\065\056\085\098\102\085\070\051\061","\069\053\097\072\107\050\102\082\068\049\057\072\114\108\099\097\053\115\090\048\071\110\069\052\122\075\050\098\121\051\109\089\114\070\053\115\073\099\110\079\073\105\103\047\076\068\119\089\069\074\114\048\122\077\114\085\048\074\084\116\087\052\053\098\076\057\103\103\072\107\085\071\056\073\109\090\055\047\052\065\048\102\120\083\089\116\112\069\087\101\117\056\074\077\120\118\084\111\119\052\113\088\043\068\115\049\050\105\056\075\084\113\114\111\115\054\078\048\112\113\082\109\105\082\077\106\055\067\074\057\053\073\098\080\088\055\072\054\075\105\079\072\085\052\055\098\076\104\104\050\112\105\121\068\098\050\090\111\099\112\097\103\070\087\052\101\078\080\048\100\110\089\055\088\055\056\055\078\055\073\049\112\105\079\082\090\108\088\099\090\088\090\073\080\051\118\070\104\078\107\118\069\086\107\056\069\097\076\048\082\111\078\052\108\051\100\088\079\050\070\049\084\105\111\088\072\069\089\103\108\104\065\067\052\052\080\121\057\098\110\119\072\069\111\043\048\053\086\075\107\109\089\077\070\086\121\085\119\067\081\083\098\090\048\103\087\085\076\097\117\051\122\070\074\100\119\090\109\101\105\071\049\100\117\066\082\049\069\105\086\119\049\090\078\057\113\065\113\122\080\050\101\116\070\080\118\057\053\081\110\068\051\076\086\121\083\114\053\117\117\084\052\102\100\106\114\087\111\111\086\054\102\102\115\049\115\079\107\101\047\056\108\076\055\072\107\097\052\051\077\116\109\107\118\090\052\084\110\090\048\068\043\075\106\121\105\109\056\048\119\080\076\098\052\099\077\115\068\121\049\057\112\102\084\115\049\055\052\053\115\082\107\066\076\053\089\099\101\119\070\065\057\057\118\069\050\080\084\088\065\122\065\078\051\107\080\119\047\111\116\079\090\082\070\116\081\080\101\049\078\078\080\054\119\065\051\055\074\109\084\082\083\052\071\077\078\081\116\080\079\078\116\099\054\122\083\056\098\109\056\050\118\082\066\053\116\068\071\116\072\111\072\097\097\121\069\104\049\049\080\117\052\048\088\110\070\049\114\097\116\050\088\070\110\053\102\049\043\067\086\067\080\079\098\054\080\053\047\113\111\104\101\048\084\055\055\112\116\080\119\088\089\081\087\113\079\107\098\119\099\076\077\076\082\117\081\122\116\079\070\115\050\113\097\118\100\109\053\065\111\083\069\055\086\066\109\043\067\119\086\075\080\050\117\067\076\120\055\114\101\087\111\106\105\080\108\121\065\083\107\099\107\108\114\099\106\066\114\122\098\043\067\055\053\075\122\070\115\114\057\057\073\118\083\071\107\057\056\086\107\102\043\066\043\086\049\081\105\082\052\108\077\107\084\108\054\057\121\047\082\113\072\121\111\111\070\097\117\071\085\107\088\122\115\070\120\082\103\057\121\098\081\071\090\085\066\047\083\055\085\080\067\105\050\051\085\101\121\083\083\073\100\122\070\121\051\101\102\097\081\053\080\113\056\079\068\116\084\073\104\079\072\065\080\054\113\081\083\056\057\122\077\101\119\078\081\075\101\119\086\121\047\056\053\081\049\053\098\111\090\083\114\115\088\112\099\074\089\120\076\111\119\099\083\111\118\117\106\071\084\068\069\111\047\085\102\055\117\073\072\081\102\122\111\120\111\050\047\054\051\055\048\056\057\048\072\050\085\121\104\050\090\048\118\078\099\111\072\105\043\067\088\065\052\074\103\069\118\114\076\110\072\071\066\052\075\090\105\072\102\118\071\089\089\069\105\071\083\081\097\116\048\052\056\052\122\067\069\108\070\067\055\071\047\081\121\122\049\114\073\072\117\051\048\052\072\052\122\043\087\086\081\053\047\080\047\075\114\118\055\103\100\048\049\082\079\112\075\086\072\081\100\073\106\116\086\090\101\089\097\047\114\115\056\065\118\117\048\084\051\116\088\105\067\049\076\112\113\086\056\053\081\100\103\071\104\077\086\115\075\104\055\074\097\067\078\121\077\050\118\083\089\053\050\097\053\087\071\050\098\048\104\077\108\080\086\099\083\122\085\103\120\121\065\075\106\053\107\122\083\070\110\067\088\065\097\050\043\098\076\077\077\114\105\079\051\047\083\050\070\105\053\080\053\106\100\054\073\090\112\089\113\074\090\085\122\090\089\088\107\057\105\055\068\097\086\107\078\098\105\079\085\072\089\122\110\104\104\097\103\078\070\087\071\081\104\055\111\102\047\076\051\070\052\097\069\050\088\049\079\074\108\053\074\089\111\108\117\105\101\055\078\047\085\121\073\112\110\090\102\089\079\087\051\114\106\071\087\106\089\103\111\070\074\075\120\086\057\117\053\082\043\105\076\070\099\106\098\077\117\049\114\047\065\121\070\101\050\048\085\120\114\084\109\048\084\107\105\053\074\068\098\055\077\103\109\108\079\052\099\079\066\106\099\100\050\056\054\085\098\117\099\117\122\054\083\055\112\111\085\051\074\102\122\083\070\085\117\105\049\098\109\055\121\077\073\069\122\080\051\066\050\071\079\107\090\100\101\116\057\089\088\111\098\122\056\054\079\078\112\054\087\114\118\085\106\102\104\066\089\052\057\115\089\103\081\111\076\110\084\076\097\101\068\112\072\099\102\080\076\078\087\054\113\108\102\051\117\120\118\047\107\106\122\070\114\054\099\078\087\080\106\052\072\051\088\047\107\105\103\097\050\051\110\080\117\121\110\104\088\078\113\070\099\107\122\084\080\076\054\055\077\085\069\077\088\099\113\087\105\066\109\118\098\065\105\066\075\070\100\050\110\110\056\105\076\069\043\082\047\086\112\053\090\050\077\067\080\117\105\101\051\120\081\108\103\055\120\090\087\052\050\050\079\082\051\073\121\097\072\056\090\067\117\067\070\071\048\088\108\068\122\074\055\115\072\103\081\067\116\052\090\104\084\105\052\083\106\085\078\108\048\106\090\074\066\113\086\084\078\076\049\112\082\122\081\084\099\102\055\076\085\066\104\103\065\111\083\101\083\084\067\100\078\082\103\075\103\102\076\088\074\054\082\053\075\081\065\048\109\118\110\086\117\055\100\048\116\048\113\114\085\107\106\070\088\085\065\102\075\074\108\057\077\121\102\111\070\081\105\070\088\057\066\098\112\103\083\099\078\055\103\087\080\100\071\074\110\101\106\074\071\079\082\055\113\110\073\087\110\050\067\071\078\052\097\079\079\056\118\069\117\087\066\103\103\108\119\077\069\043\100\070\070\076\051\084\097\081\083\076\043\072\077\112\098\089\100\072\122\112\115\072\067\090\053\122\121\114\105\111\047\119\110\084\053\090\065\101\078\097\082\071\097\083\049\077\077\098\121\110\116\043\080\111\098\104\107\101\078\083\067\066\082\120\082\043\101\075\082\099\043\069\065\065\111\097\113\078\108\052\068\065\082\078\079\061\061","\106\090\047\054\068\066\066\083\057\073\072\074\052\069\050\110\100\048\061\061";"\068\073\052\113","\099\069\057\111\106\103\049\071\049\075\061\061";"\100\115\083\074\049\054\066\081\101\097\072\101\085\069\051\117","\052\073\066\114\106\073\052\077\080\103\057\071\049\073\052\074\049\073\052\120\080\108\061\061";"\049\073\082\113\049\101\083\112\098\109\080\061";"";"\099\067\066\088\056\090\047\090\099\115\100\118\076\073\071\085\068\074\056\061","\098\120\082\052\081\090\098\065\099\069\057\109\051\120\072\083","\049\067\117\053\085\090\071\066\085\070\048\088\098\074\049\097\052\066\066\111","\098\109\047\077\068\070\080\061";"\049\120\088\103\099\069\066\103\056\067\082\098\049\115\066\078\057\067\103\061","\078\048\061\061","\078\112\048\071\098\110\105\072\078\048\061\061","\106\070\057\077\081\101\065\090";"\109\083\082\114\098\109\057\050\049\073\066\112\068\073\115\061","\109\083\082\072\068\097\057\071\076\075\061\061";"\098\067\083\050\049\073\100\105";"\109\083\082\119\098\101\117\061";"\049\101\065\079\051\101\100\086","\068\101\066\111\081\075\061\061";"\049\073\066\112\068\073\115\061";"\106\097\066\113\098\073\082\114";"\056\066\052\108\049\069\051\061","\106\067\052\111\068\101\052\111\051\109\057\050\051\097\088\071";"\098\067\066\114\098\108\061\061";"\106\073\100\050\068\073\079\061";"\051\067\050\050\106\048\061\061";"\068\073\082\050\098\069\100\111\106\097\071\113\098\079\061\061"}local function y(y)return B[y+(365093+-329920)]end for y,x in ipairs({{370735-370734,-117258+117305};{-332027-(-332028);264175+-264170};{-242193-(-242199);-563021-(-563068)}})do while x[-92866+92867]<x[-848083-(-848085)]do B[x[927686+-927685]],B[x[158515-158513]],x[-376640-(-376641)],x[1121-1119]=B[x[864704-864702]],B[x[656796-656795]],x[-54883+54884]+(686426+-686425),x[-454998-(-455000)]-(902624-902623)end end do local y=string.len local x=math.floor local M={["\049"]=-553784+553813;G=937367-937330;J=921040-921005,t=-413567+413625,["\054"]=304794+-304791,["\057"]=-638920-(-638937),v=-701969+701984,f=857977+-857930;g=79993+-79989,z=450834+-450792,["\047"]=389246-389237,N=-243760-(-243774),a=-486988-(-487026);c=39248+-39230;B=-232795-(-232800);["\048"]=735824+-735792,["\052"]=-315851-(-315872),j=157438-157410;s=-27166+27186,p=105431+-105397;P=115504+-115496;Q=448175-448149,e=305558-305536;L=121286+-121256;h=796769+-796710;Z=570733+-570694,q=-210041-(-210087);A=-943536+943593;y=270928-270917,K=1044878+-1044878,R=-871851-(-871912),u=-860847+860903;I=-846823-(-846829),M=334551+-334501;D=964502-964475;E=-586304+586311,l=608050+-608034;["\051"]=33551+-33527,w=-185599-(-185643);["\055"]=576259-576258,H=969791-969750,O=85203+-85155;n=942061-942059,b=531706-531681;m=-90954+90977;["\050"]=-211402+211435,["\053"]=963469+-963418,o=-43145-(-43197);F=814716-814661;U=-840296-(-840315),V=-302558-(-302601);["\043"]=-485374+485437,d=985775+-985762;W=648943+-648883;Y=-363612+363643,["\056"]=1033982-1033970,x=611348+-611312;C=12891-12837,T=666147+-666137;S=127012+-126959,X=527722+-527673,i=-227743-(-227783),r=586612-586567,k=192071-192009}local A=string.char local T=table.insert local O=B local Z=string.sub local t=type local H=table.concat for B=-311938+311939,#O,-795934+795935 do local d=O[B]if t(d)=="\115\116\114\105\110\103"then local t=y(d)local C={}local m=938274-938273 local G=161689-161689 local R=-293958+293958 while m<=t do local B=Z(d,m,m)local y=M[B]if y then G=G+y*(-475272+475336)^((589235+-589232)-R)R=R+(-276308-(-276309))if R==-266122-(-266126)then R=-858341+858341 local B=x(G/(662097+-596561))local y=x((G%(304005-238469))/(-530656-(-530912)))local M=G%(835499-835243)T(C,A(B,y,M))G=210352+-210352 end elseif B=="\061"then T(C,A(x(G/(447843+-382307))))if m>=t or Z(d,m+(521320-521319),m+(-610864+610865))~="\061"then T(C,A(x((G%(-151986+217522))/(402730+-402474))))end break end m=m+(-852296+852297)end O[B]=H(C)end end end return(function(B,M,A,T,O,Z,t,m,G,p,H,j,J,l,C,d,v,x,R,U,u)H,u,v,J,j,R,l,m,C,x,p,d,U,G={},function(B,y)local M=G(y)local A=function(A)return x(B,{A},y,M)end return A end,function(B,y)local M=G(y)local A=function(A,T,O,Z)return x(B,{A;T;O;Z},y,M)end return A end,function(B,y)local M=G(y)local A=function(...)return x(B,{...},y,M)end return A end,function(B,y)local M=G(y)local A=function(A,T)return x(B,{A;T},y,M)end return A end,function(B)local y,x=-815739-(-815740),B[-754670+754671]while x do d[x],y=d[x]-(65866+-65865),y+(-149694+149695)if-554522-(-554522)==d[x]then d[x],H[x]=nil,nil end x=B[y]end end,function(B,y)local M=G(y)local A=function(A,T,O,Z,t)return x(B,{A,T;O,Z;t},y,M)end return A end,463434+-463434,function()m=(297708+-297707)+m d[m]=341159-341158 return m end,function(x,A,T,O)local g,e,m,X,N,n,s,w,f,S,R,Y,G,k,h,F,J,V,b,W,i,r,c,z,q,a,D,K,t,E,I,o,d,Q while x do if x<626472+6985565 then if x<1002083+3711019 then if x<647195+1084568 then if x<47142+1122239 then if x<982334-149149 then if x<649406-95928 then if x<791824-614106 then m=H[T[660420-660419]]R=-76676+76677 J=-570126-(-570128)G=m(R,J)m=704552+-704551 d=G==m t=d x=d and-259343+1086449 or 4058201-(-602226)else d=H[T[-687862-(-687863)]]t=#d d=-49347+49347 x=t==d x=x and-568952+2820499 or 7365432-423395 end else x=t and-657823+10095353 or 809038+12714753 end else if x<537770+484091 then x=7242807-529732 else d=y(499661-534800)x=B[d]G=-266172+266172 m=H[T[-656574-(-656582)]]d=x(m,G)x=-448183+15871141 end end else if x<2209085-839486 then if x<2171813-848171 then x=390834+9697408 else w={}t={}z=C()a=nil g=C()H[g]=w w=C()f=j(426869-58245,{g,o;h;J})x=B[y(658819-693975)]k=y(-742251+707117)H[w]=f r=y(398419+-433552)i=y(-1036909-(-1001737))s=nil n=nil R=nil f={}F={}H[z]=f f=B[i]Q=H[z]b={[r]=Q,[k]=n}s=y(-589002+553831)J=U(J)i=f(F,b)J=y(-14786-20382)G=i R=B[J]f=p(3114099-819301,{z,g;K;o;h;w})c=nil o=U(o)m=f w=U(w)S=nil a=B[s]h=U(h)E=nil h=y(-374178-(-339028))S=814867+32028025277231 z=U(z)o=m(h,S)c=G[o]G=nil g=U(g)m=nil o=y(917321+-952468)K=U(K)o=a[o]s={o(a,c)}J=R(M(s))R=J()end else if x<2092568-574363 then H[m]=t x=335955+5049079 else H[T[16667+-16662]]=t x=14264866-741075 d=nil end end end else if x<-929593+4811115 then if x<3015199-674332 then if x<3066232-805956 then if x<-905522+3116517 then N=925725-925723 q=k[N]x=681532+9977395 N=H[Q]n=q==N e=n else G=-659641-(-659714)m=H[T[-193979-(-193981)]]d=m*G m=101331+2111493027844 t=d+m d=35184372964509-875677 x=t%d H[T[6522-6520]]=x d=H[T[243359+-243356]]m=-675702-(-675703)t=d~=m x=16598735-654278 end else d=A[116044+-116043]m=A[-370719-(-370721)]x=H[T[-162704+162705]]G=x x=G[m]x=x and 1258796-379829 or-818443+6143576 end else if x<2306561-(-797482)then t={}x=true H[T[272558-272557]]=x x=B[y(-810288-(-775133))]else E=not K h=h+S c=h<=o c=E and c E=h>=o E=K and E c=E or c E=1035775+4182692 x=c and E c=10120702-319430 x=x or c end end else if x<4799029-337691 then if x<3345662-(-677302)then x=11731724-(-632652)else H[m]=D x=H[m]x=x and 5873459-650594 or 216411+5503278 end else if x<-62284+4634689 then Y=-967498-(-967499)H[m]=e N=H[b]q=N+Y n=k[q]V=S+n n=-62261-(-62517)x=V%n S=x q=H[F]n=K+q q=-638076-(-638332)x=960463+4424571 V=n%q K=V else m=H[T[-666924-(-666926)]]G=H[T[-717950+717953]]x=-94576-(-921682)d=m==G t=d end end end end else if x<4626583-(-998181)then if x<301251+5076961 then if x<946685+4272701 then if x<6124311-987384 then if x<5909154-949259 then m=y(654558-689723)t=-775531+12384265 G=2913468-(-171729)d=m^G x=t-d d=x t=y(-36762+1616)x=t/d t={x}x=B[y(-115718-(-80567))]else S=15850-15785 E=y(606488-641658)o=C()H[o]=t h=287455-287452 x=H[s]t=x(h,S)h=C()H[h]=t w=l(821744+4031578,{})x=-408611-(-408611)S=x t=B[E]W=y(241370+-276531)E={t(w)}x=-729407-(-729407)t=-988604-(-988606)K=x x={M(E)}E=x x=E[t]t=y(925729-960873)w=x x=B[t]g=H[G]X=B[W]W=X(w)X=y(-1027500+992364)D=g(W,X)g={D()}t=x(M(g))g=C()H[g]=t D=H[h]X=D D=5933+-5932 x=8633329-293495 W=D t=-111249-(-111250)D=180847-180847 f=W<D D=t-W end else c=h W=y(-99309-(-64174))X=B[W]W=y(-533808+498648)D=X[W]X=D(d,c)D=H[T[-981588+981594]]W=D()g=X+W w=g+a g=-1041384+1041640 x=-1012797+4711920 E=w%g a=E W=-733368+733369 g=G[m]X=a+W D=R[X]c=nil w=g..D G[m]=w end else if x<5106488-(-122307)then x=551893+5625782 else x={}H[T[-647604+647606]]=x J=-766421+35184372855253 t=H[T[-852609+852612]]R=t t=m%J s=-218376-(-218631)H[T[1006440-1006436]]=t a=m%s s=-372965-(-372967)J=a+s H[T[-525206+525211]]=J c=y(-130223+95088)h=538714+-538713 s=B[c]c=y(-3467-31681)a=s[c]s=a(d)a=y(-113558-(-78415))G[m]=a S=h a=170049+-169946 c=-792118-(-792119)h=-346997-(-346997)o=s x=-803833+4502956 K=S<h h=c-S end end else if x<6407238-904349 then if x<-783765+6250236 then b=U(b)i=U(i)F=U(F)k=nil z=U(z)Q=U(Q)r=U(r)x=104742+8235092 else x=h t=o x=o and 5881547-765669 or 592112+15070775 end else if x<1029411+4542445 then X=H[m]D=X x=X and 7638374-564427 or 57925+4065020 else f=-147976-(-147976)g=#E w=g==f x=w and 107770+1218726 or 9804642-882338 end end end else if x<-144579+6853389 then if x<-915055+6997219 then if x<6188153-380582 then if x<-315000+6029726 then x=14306638-(-598401)a=H[J]t=a else x=true x=13575297-(-324288)end else S=-727726-(-727739)m=H[T[767698+-767695]]G=507777-507745 d=m%G R=H[T[-861221+861225]]o=509186+-509184 s=H[T[-5038+5040]]w=H[T[-620336-(-620339)]]E=w-d w=-247858+247890 K=E/w h=S-K c=o^h a=s/c c=-847291-(-847292)J=R(a)R=4294767061-(-200235)G=J%R J=-162662-(-162664)R=J^d m=G/R R=H[T[499670-499666]]s=m%c c=-671315+4295638611 a=s*c J=R(a)R=H[T[612505-612501]]a=R(m)o=-1004662-(-1004918)G=J+a s=892929+-827393 J=-485284+550820 R=G%J a=G-R J=a/s s=257188-256932 a=R%s c=R-a s=c/o d=nil o=-402044+402300 m=nil S=989340+-989084 c=J%o G=nil h=J-c o=h/S h={a;s;c;o}o=nil x=-628777+7570814 c=nil R=nil a=nil s=nil J=nil H[T[-469492+469493]]=h end else if x<6572068-58482 then h=U(h)m=U(m)K=nil a=nil E=nil w=nil R=U(R)a=y(-15413+-19716)s=U(s)x=-563822+15925208 c=nil o=U(o)S=nil G=U(G)J=U(J)J=B[a]m=nil G=nil K=C()S={}a=y(952566-987718)g=U(g)E={}R=J[a]s=y(-926756+891627)c=y(752318-787446)J=C()H[J]=R a=B[s]g=944900+-944644 s=y(1040995+-1076122)R=a[s]s=B[c]c=y(956493-991652)h=C()a=s[c]o=y(-821547+786412)c=B[o]o=y(755385-790554)w=148374-148373 s=c[o]o=C()c=773179+-773179 H[o]=c f=g c=286499-286497 H[h]=c c={}H[K]=S S=-452114+452114 g=-607023-(-607024)z=g g=498303+-498303 i=z<g g=w-z else t=-603735+17357239 G=11167315-(-257292)m=y(559119+-594259)d=m^G x=t-d t=y(-470387+435261)d=x x=t/d t={x}x=B[y(219259+-254397)]end end else if x<46194+6916383 then if x<7239845-490924 then x=B[y(-932471-(-897317))]t={m}else G=y(-640446+605318)x=B[y(-154693+119540)]m=B[G]G=y(284240+-319399)d=m[G]G=H[T[204724+-204723]]m={d(G)}t={M(m)}end else if x<-341388+7437952 then X=S==K x=172774+3950171 D=X else t={}x=B[y(382790+-417953)]end end end end end else if x<11880504-(-999213)then if x<-702331+10358097 then if x<9531835-644763 then if x<9210443-774777 then if x<417626+7639188 then if x<8330377-639019 then d=y(525991+-561149)t=y(-595968+560801)x=B[t]t=B[d]d=y(-646822-(-611664))B[d]=x d=y(-158082-(-122915))B[d]=t d=H[T[20699+-20698]]m=d()x=9744634-(-343608)else G=G+J s=not a m=G<=R m=s and m s=G>=R s=a and s m=s or m s=15995554-1019930 x=m and s m=913346+8526408 x=x or m end else D=D+W t=D<=X z=not f t=z and t z=D>=X z=f and z t=z or t z=12424272-(-783757)x=t and z t=713628+4853954 x=x or t end else if x<76604+8681623 then x=-616072+2240673 G=H[T[-671539-(-671545)]]m=G==d t=m else e=H[m]t=e x=e and 13269629-(-530447)or 2100414-674420 end end else if x<8798601-(-165514)then if x<670001+8244681 then t={}x=B[y(303009+-338151)]else g=1004748+-1004747 f=#E w=R(g,f)g=a(E,w)F=-611128-(-611129)w=nil f=H[K]i=g-F z=s(i)f[g]=z x=747678+4871328 g=nil end else if x<-118665+9557824 then t=y(709699-744843)x=B[t]c=y(-572676+537506)d=H[T[-514800-(-514804)]]R=y(-1048476+1013315)G=B[R]s=B[c]o=v(47922+6478191,{})c={s(o)}a={M(c)}s=-602158+602160 J=a[s]R=G(J)G=y(-543744-(-508608))m=d(R,G)d={m()}t=x(M(d))d=t m=H[T[76499+-76494]]t=m x=m and 8469666-33237 or-967988+2592589 else x=H[T[-906249+906259]]m=H[T[-1033837+1033848]]d[x]=m x=H[T[-396041+396053]]m={x(d)}x=B[y(876451+-911592)]t={M(m)}end end end else if x<556170+10039607 then if x<9757650-(-519058)then if x<-140664+10266171 then if x<10448690-414965 then x=6705645-(-7430)R=nil a=nil s=nil else x=true x=x and-436250+8120336 or-750239+8102534 end else W=y(723737+-758898)x=B[W]z=y(119942+-155100)f=B[z]W=x(f)x=y(102517-137684)B[x]=W x=-71401+10559675 end else if x<10287802-(-164013)then t=y(-492226-(-457087))x=B[t]d=y(449225-484370)t=x(d)x=B[y(183244-218410)]t={}else x=60224+12304152 end end else if x<-105485+11423634 then if x<11234346-565948 then t=e x=V x=1521020-95026 else m=H[T[51337-51334]]G=-197856+197857 d=m~=G x=d and 5887385-18781 or 181072+15763385 end else if x<286229+12123646 then x=true x=x and 15500151-(-203632)or 8619761-(-289963)else n=-930509+930510 V=k[n]e=V x=3743335-(-809738)end end end end else if x<-963383+15906277 then if x<-711496+14477589 then if x<14128405-656083 then if x<13783709-450481 then if x<-943471+14170160 then F=-875000-(-875100)z=C()i=y(-547467+512338)H[z]=D t=B[i]b=-948247-(-948502)i=y(510634-545761)x=t[i]i=-630465-(-630466)k=557258-557256 t=x(i,F)F=-685861+685861 i=C()H[i]=t x=H[s]t=x(F,b)F=C()H[F]=t x=H[s]r=H[i]b=178362-178361 I=730629+-720629 Q=195346+-195345 t=x(b,r)Y=-692244+692244 b=C()H[b]=t n=y(918166-953327)t=H[s]r=t(Q,k)k=y(-151027-(-115890))t=924490+-924489 x=r==t r=C()H[r]=x V=B[n]t=y(-75916+40780)q=H[s]N={q(Y,I)}n=V(M(N))V=y(-254915+219778)x=y(61432+-96594)e=n..V x=w[x]Q=k..e x=x(w,t,Q)Q=C()k=y(945551+-980721)H[Q]=x e=j(-51997-(-79134),{s;z;h;G;m;g,r;Q;i;b,F,o})t=B[k]k={t(e)}x={M(k)}k=x x=H[r]x=x and 9195422-368968 or 390403+16174736 else m=C()s=y(-954495+919325)x=true G=y(-321221-(-286086))H[m]=x t=B[G]G=y(607529+-642661)x=t[G]G=C()d=A H[G]=x x=j(43065+10396417,{})R=C()H[R]=x J=C()x=false H[J]=x c=u(-93248+2473489,{J})a=B[s]s=a(c)t=s x=s and 6424204-725198 or-251743+15156782 end else E=y(156573-191701)K=B[E]x=5337304-(-143904)E=y(-1078750-(-1043620))S=K[E]o=S end else if x<14598101-910001 then x=H[T[320227-320220]]x=x and 542229+557691 or 14683660-(-739298)else w=g F=w E[w]=F x=15507720-146334 w=nil end end else if x<-147247+14103324 then if x<-880777+14755493 then N=-116762+116763 V=x q=k[N]N=false n=q==N x=n and 1136267-(-677811)or 705529+9953398 e=n else x=v(990006-(-285085),{R})X={x()}t={M(X)}x=B[y(-994764+959615)]end else if x<-751059+15521836 then x=true x=x and 3128389-(-789707)or-727733+14627318 else a=t s=y(72787+-107916)c=y(-473782+438654)t=B[s]s=y(-765749+730622)K=y(942597-977725)x=t[s]s=C()H[s]=x t=B[c]c=y(-80484-(-45327))x=t[c]h=x c=x S=B[K]x=S and 13875386-528431 or 5506887-25679 o=S end end end else if x<16270589-606144 then if x<-974103+16493022 then if x<66050+15332447 then if x<268886+14752773 then o=-357389+357644 c=-905264-(-905264)x=H[T[320948-320947]]s=x(c,o)m=G d[m]=s x=8125831-403921 m=nil else F=not i g=g+z w=g<=f w=F and w F=g>=f F=i and F w=F or w F=398817+13364447 x=w and F w=16871032-200481 x=x or w end else x={}m=-220823+220824 d=x G=H[T[-315244-(-315253)]]R=G G=948364-948363 J=G G=-521514-(-521514)x=-582550+8304460 a=J<G G=m-J end else if x<-728288+16319450 then f=y(-445490+410323)x=B[f]f=y(-1031481-(-996323))B[f]=x x=-410309+10898583 else h=y(346473+-381603)x=-472547+5588425 o=B[h]t=o end end else if x<15342459-(-726276)then if x<16699857-792150 then f=-702948+702954 W=785681-785680 x=H[s]X=x(W,f)f=y(-970010+934843)x=y(-884931+849764)B[x]=X W=B[f]f=-465557-(-465559)x=W>f x=x and 10561309-320527 or 14556456-(-972444)else m=H[T[-412167-(-412170)]]G=603454-603266 d=m*G m=568746-568489 x=-218868+11380140 t=d%m H[T[156157-156154]]=t end else if x<17408768-795479 then V=H[m]e=V x=V and 12573224-109492 or 591859+3961214 else f=-468617-(-468617)g=#E x=9070864-148560 w=g==f end end end end end end end x=#O return M(t)end,function(B,y)local M=G(y)local A=function(A,T,O)return x(B,{A,T;O},y,M)end return A end,{},function(B)d[B]=d[B]-(258415+-258414)if d[B]==867434-867434 then d[B],H[B]=nil,nil end end,function(B)for y=994739+-994738,#B,-22405-(-22406)do d[B[y]]=d[B[y]]+(763981-763980)end if A then local x=A(true)local M=O(x)M[y(935912-971045)],M[y(-1077549-(-1042385))],M[y(758351-793482)]=B,R,function()return 1311+-1679548 end return x else return T({},{[y(286206+-321370)]=R,[y(-364244+329111)]=B;[y(219379+-254510)]=function()return-701341-976896 end})end end return(J(12559872-(-764832),{}))(M(t))end)(getfenv and getfenv()or _ENV,unpack or table[y(-309751+274621)],newproxy,setmetatable,getmetatable,select,{...})end)(...)
