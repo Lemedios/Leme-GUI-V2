@@ -3,8 +3,7 @@
 Leme GUI v2.1
 
 Discord
-DM: leme3_
-Support: discord.gg/KePdEC5eVP
+DM: leme_dios
 
                                                 .--::..
                                            .-+#*=.
